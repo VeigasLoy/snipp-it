@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SnippIt - Your Personal Bookmark Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Lato:wght@400;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500;700&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#1173d4",
+              "background-light": "#f6f7f8",
+              "background-dark": "#101922",
+            },
+            fontFamily: {
+              "display": ["Inter"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "full": "9999px"
+            },
+            keyframes: {
+              fadeInDown: {
+                '0%': { opacity: '0', transform: 'translateY(-20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
+            },
+            animation: {
+              'fade-in-down': 'fadeInDown 0.5s ease-out forwards',
+              'fade-in-up': 'fadeInUp 0.3s ease-out forwards',
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      .theme-light {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-tertiary: #f1f5f9;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-tertiary: #94a3b8;
+        --border-primary: #e2e8f0;
+        --accent-primary: #3b82f6;
+        --accent-primary-hover: #2563eb;
+      }
+      .theme-dark {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-tertiary: #94a3b8;
+        --border-primary: #334155;
+        --accent-primary: #60a5fa;
+        --accent-primary-hover: #3b82f6;
+      }
+      .theme-solarized {
+        --bg-primary: #002b36;
+        --bg-secondary: #073642;
+        --bg-tertiary: #586e75;
+        --text-primary: #eee8d5;
+        --text-secondary: #839496;
+        --text-tertiary: #93a1a1;
+        --border-primary: #073642;
+        --accent-primary: #268bd2;
+        --accent-primary-hover: #2aa198;
+      }
+      .theme-nord {
+        --bg-primary: #2e3440;
+        --bg-secondary: #3b4252;
+        --bg-tertiary: #434c5e;
+        --text-primary: #d8dee9;
+        --text-secondary: #e5e9f0;
+        --text-tertiary: #eceff4;
+        --border-primary: #4c566a;
+        --accent-primary: #88c0d0;
+        --accent-primary-hover: #81a1c1;
+      }
+      .theme-monokai {
+        --bg-primary: #272822;
+        --bg-secondary: #3e3d32;
+        --bg-tertiary: #75715e;
+        --text-primary: #f8f8f2;
+        --text-secondary: #a6e22e;
+        --text-tertiary: #e6db74;
+        --border-primary: #75715e;
+        --accent-primary: #f92672;
+        --accent-primary-hover: #fd971f;
+      }
+       /* Scrollbar styles for a more modern look */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: var(--bg-tertiary);
+        border-radius: 10px;
+        border: 2px solid var(--bg-secondary);
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: var(--accent-primary);
+      }
+
+      /* Custom styles for browser autofill */
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+          -webkit-text-fill-color: #000000 !important;
+      }
+
+      .dark input:-webkit-autofill,
+      .dark input:-webkit-autofill:hover,
+      .dark input:-webkit-autofill:focus,
+      .dark input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px #101922 inset !important; /* background-dark */
+          -webkit-text-fill-color: #ffffff !important;
+      }
+      .dark select, .dark input[type="checkbox"] {
+        color-scheme: dark;
+      }
+      input[type="checkbox"] {
+        accent-color: var(--accent-primary);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/"
+  }
+}
+</script>
+</head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
