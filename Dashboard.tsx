@@ -11,6 +11,8 @@ import ConfirmDeleteModal from './components/ConfirmDeleteModal';
 import BulkActionBar from './components/BulkActionBar';
 import { BulkMoveModal, BulkAddLabelsModal } from './components/BulkActionsModals';
 import Toast from './components/Toast';
+import PasswordPromptModal from './components/PasswordPromptModal';
+import { PRIVATE_SETTINGS } from './constants';
 
 type DeletionObject = {
   type: 'category' | 'folder' | 'label' | 'bookmark-bulk';
@@ -31,9 +33,10 @@ interface DashboardProps {
     setFont: (font: Font) => void;
     onLogout: () => void;
     onPrivateFolderClick: () => void;
+    updateUserName: (newName: string) => Promise<void>;
 }
 
-function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLayout, font, setFont, onLogout, onPrivateFolderClick }: DashboardProps) {
+function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLayout, font, setFont, onLogout, onPrivateFolderClick, updateUserName }: DashboardProps) {
   const { data: bookmarks, add: addBookmark, update: updateBookmark, remove: removeBookmark, bulkUpdate: bulkUpdateBookmarks, bulkDelete: bulkDeleteBookmarks } = useFirestore<Bookmark>('bookmarks', loggedInUser.id);
   const { data: categories, add: addCategory, update: updateCategory, remove: removeCategory } = useFirestore<Category>('categories', loggedInUser.id);
   const { data: folders, add: addFolder, update: updateFolder, remove: removeFolder } = useFirestore<Folder>('folders', loggedInUser.id);
@@ -49,6 +52,10 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [modalMode, setModalMode] = useState<'view' | 'edit'>('edit');
   
+  // New state to hold initial folder/category for new bookmarks
+  const [initialBookmarkFolderId, setInitialBookmarkFolderId] = useState<string | null>(null);
+  const [initialBookmarkCategoryId, setInitialBookmarkCategoryId] = useState<string | null>(null);
+
   const [itemToDelete, setItemToDelete] = useState<DeletionObject | null>(null);
   const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
   
@@ -58,6 +65,8 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
+  const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
+
   useEffect(() => {
     if (toastMessage) {
         const timer = setTimeout(() => setToastMessage(null), 3000);
@@ -76,17 +85,37 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
     setView('settings');
   };
 
+  const handlePrivateFolderClickWithPassword = () => {
+    setIsPasswordPromptOpen(true);
+  };
+
+  const handlePasswordSuccess = () => {
+    setIsPasswordPromptOpen(false);
+    setActiveFilter({ type: 'folder', id: PRIVATE_SETTINGS.FOLDER_ID, name: 'Private Bookmarks' });
+  };
+
   const frequentlyVisitedBookmarks = useMemo(() => {
-    return [...bookmarks]
+    // Filter out private bookmarks from the frequently visited list.
+    return [...bookmarks.filter(b => !b.isPrivate)]
       .sort((a, b) => b.visitCount - a.visitCount)
       .slice(0, 4);
   }, [bookmarks]);
 
   const filteredBookmarks = useMemo(() => {
-    const viewFiltered = bookmarks.filter(bookmark => {
+    let currentBookmarks = bookmarks;
+
+    // 1. Apply privacy filter first
+    if (activeFilter.id === PRIVATE_SETTINGS.FOLDER_ID) {
+        currentBookmarks = bookmarks.filter(b => b.isPrivate);
+    } else {
+        currentBookmarks = bookmarks.filter(b => !b.isPrivate);
+    }
+
+    // 2. Apply view-specific filters
+    const viewFiltered = currentBookmarks.filter(bookmark => {
       switch (activeFilter.type) {
         case 'all':
-          return true;
+          return true; // Already filtered for privacy
         case 'favorites':
           return bookmark.isFavorite;
         case 'archived':
@@ -102,10 +131,10 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
         }
         case 'category': {
           const folderIdsInCategory = folders.filter(f => f.categoryId === activeFilter.id).map(f => f.id);
-          return folderIdsInCategory.includes(bookmark.folderId);
+          // Include bookmarks directly in the category or in a folder within the category
+          return bookmark.categoryId === activeFilter.id || (bookmark.folderId && folderIdsInCategory.includes(bookmark.folderId));
         }
         case 'folder':
-        case 'pinned':
           return bookmark.folderId === activeFilter.id;
         case 'label':
           if (Array.isArray(activeFilter.id)) {
@@ -144,6 +173,18 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
   const handleAddBookmarkClick = () => {
     setEditingBookmark(null);
     setModalMode('edit');
+
+    // Set initial folder/category based on active filter
+    if (activeFilter.type === 'folder') {
+      setInitialBookmarkFolderId(activeFilter.id as string);
+      setInitialBookmarkCategoryId(null);
+    } else if (activeFilter.type === 'category') {
+      setInitialBookmarkCategoryId(activeFilter.id as string);
+      setInitialBookmarkFolderId(null);
+    } else {
+      setInitialBookmarkFolderId(null);
+      setInitialBookmarkCategoryId(null);
+    }
     setFormModalOpen(true);
   };
 
@@ -154,12 +195,20 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
   };
   
   const handleSaveBookmark = (bookmarkData: Omit<Bookmark, 'id' | 'createdAt' | 'isFavorite' | 'visitCount' | 'lastVisitedAt'>, id?: string) => {
+    const dataToSave = {
+      ...bookmarkData,
+      isPrivate: bookmarkData.folderId === PRIVATE_SETTINGS.FOLDER_ID,
+      // Ensure undefined values are converted to null for Firestore compatibility
+      folderId: bookmarkData.folderId || null,
+      categoryId: bookmarkData.categoryId || null,
+    };
+
     if (id) {
-      updateBookmark(id, bookmarkData);
+      updateBookmark(id, dataToSave);
       setToastMessage('Bookmark updated successfully!');
     } else {
       const newBookmark: Omit<Bookmark, 'id'> = {
-        ...bookmarkData,
+        ...dataToSave,
         createdAt: new Date().toISOString(),
         isFavorite: false,
         visitCount: 0,
@@ -169,6 +218,9 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
     }
     setFormModalOpen(false);
     setEditingBookmark(null);
+    // Clear initial values after saving/closing the modal
+    setInitialBookmarkFolderId(null);
+    setInitialBookmarkCategoryId(null);
   };
 
   const handleBookmarkVisit = (id: string) => {
@@ -183,7 +235,7 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
     if (!bookmark) return;
 
     setArchivingId(id);
-    setToastMessage(`Archiving \"${bookmark.title}\"...`);
+    setToastMessage(`Archiving "${bookmark.title}"...`);
     updateBookmark(id, { archiveFailed: false });
 
     try {
@@ -227,8 +279,13 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
 
   const handleDeleteCategory = (id: string, name: string) => {
     const hasFolders = folders.some(f => f.categoryId === id);
+    const hasDirectBookmarks = bookmarks.some(b => b.categoryId === id);
     if(hasFolders) {
-        alert(`Cannot delete \"${name}\". Please delete or move all folders from this category first.`);
+        alert(`Cannot delete "${name}". Please delete or move all folders from this category first.`);
+        return;
+    }
+    if(hasDirectBookmarks) {
+        alert(`Cannot delete "${name}". Please delete or move all bookmarks directly assigned to this category first.`);
         return;
     }
     setItemToDelete({ type: 'category', id, name });
@@ -246,7 +303,7 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
   
   const handleDeleteFolder = (id: string, name: string) => {
     if (folders.length <= 1) {
-        alert(`Cannot delete \"${name}\" as it is your only folder.`);
+        alert(`Cannot delete "${name}" as it is your only folder.`);
         return;
     }
     setItemToDelete({ type: 'folder', id, name });
@@ -271,6 +328,12 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
     
     if (type === 'category' && typeof id === 'string') {
         removeCategory(id);
+        // Also clear categoryId from any bookmarks directly assigned to this category
+        bookmarks.forEach(b => {
+            if (b.categoryId === id) {
+                updateBookmark(b.id, { categoryId: null });
+            }
+        });
     } else if (type === 'folder' && typeof id === 'string') {
         const fallbackFolderId = folders.find(f => f.id !== id)?.id;
         if (fallbackFolderId) {
@@ -303,13 +366,6 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
     }
   };
   
-  const handleTogglePin = (id: string) => {
-    const folder = folders.find(f => f.id === id);
-    if (folder) {
-      updateFolder(id, { isPinned: !folder.isPinned });
-    }
-  };
-
   const handleSetActiveFilter = (filter: ActiveFilter) => {
     setActiveFilter(filter);
     setView('dashboard');
@@ -333,7 +389,10 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
   };
 
   const handleBulkMove = (folderId: string) => {
-    bulkUpdateBookmarks(selectedBookmarkIds, { folderId });
+    const isPrivate = folderId === PRIVATE_SETTINGS.FOLDER_ID;
+    // When bulk moving, we assume it's always into a folder, not directly a category
+    // Clear categoryId if it exists on the bookmark and set to null for Firestore compatibility
+    bulkUpdateBookmarks(selectedBookmarkIds, { folderId, isPrivate, categoryId: null }); 
     setBulkMoveModalOpen(false);
     setSelectedBookmarkIds([]);
   };
@@ -362,7 +421,7 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
       setToastMessage("This folder is empty.");
       return;
     }
-    const textToCopy = `Bookmarks from \"${folderName}\":\\n\\n` + folderBookmarks.map(b => `${b.title}\\n${b.url}`).join('\\n\\n');
+    const textToCopy = `Bookmarks from "${folderName}":\n\n` + folderBookmarks.map(b => `${b.title}\n${b.url}`).join('\n\n');
     navigator.clipboard.writeText(textToCopy).then(() => {
       setToastMessage("Folder content copied to clipboard!");
     }).catch(err => {
@@ -374,9 +433,9 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
   const readingListCategoryId = 'reading';
   const activeFolder = folders.find(f => f.id === activeFilter.id);
   const isReadingListView = (activeFilter.type === 'category' && activeFilter.id === readingListCategoryId) || 
-                            ((activeFilter.type === 'folder' || activeFilter.type === 'pinned') && !!activeFolder && activeFolder.categoryId === readingListCategoryId);
+                               ((activeFilter.type === 'folder') && !!activeFolder && activeFolder.categoryId === readingListCategoryId);
 
-  const isAnyModalOpen = isFormModalOpen || !!itemToDelete || isBulkMoveModalOpen || isBulkAddLabelsModalOpen;
+  const isAnyModalOpen = isFormModalOpen || !!itemToDelete || isBulkMoveModalOpen || isBulkAddLabelsModalOpen || isPasswordPromptOpen;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
@@ -394,8 +453,7 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
           onUpdateFolder={handleUpdateFolder}
           onDeleteFolder={handleDeleteFolder}
           onDeleteLabel={handleDeleteLabel}
-          onTogglePin={handleTogglePin}
-          onPrivateFolderClick={onPrivateFolderClick}
+          onPrivateFolderClick={handlePrivateFolderClickWithPassword}
           onShareFolder={handleShareFolder}
         />
       </div>
@@ -407,7 +465,8 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
           ></div>
       )}
 
-      <main className={`h-screen overflow-y-auto md:ml-72 ${isAnyModalOpen ? 'overflow-hidden' : ''}`}>\n        <div className="sticky top-0 z-20">
+      <main className={`h-screen overflow-y-auto md:ml-72 ${isAnyModalOpen ? 'overflow-hidden' : ''}`}>
+        <div className="sticky top-0 z-20">
           <Header
             user={loggedInUser}
             onOpenSettings={handleOpenSettings}
@@ -427,7 +486,7 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
                             id="sort-by"
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as SortByType)}
-                            className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-md text-sm py-1 pl-2 pr-8 focus:ring-2 focus:ring-[var(--accent-primary)] focus:outline-none appearance-none"
+                            className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-md text-sm py-1 pl-2 pr-8 focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] focus:outline-none appearance-none"
                         >
                             <option value="newest">Newest</option>
                             <option value="oldest">Oldest</option>
@@ -454,24 +513,24 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
         
         {view === 'dashboard' ? (
            <div className="p-6">
-              {activeFilter.type === 'all' && frequentlyVisitedBookmarks.length > 0 && (
+             {activeFilter.type === 'all' && frequentlyVisitedBookmarks.length > 0 && (
                  <>
-                    <FrequentlyVisited 
-                      bookmarks={frequentlyVisitedBookmarks} 
-                      onBookmarkVisit={handleBookmarkVisit}
-                      onInfo={handleInfoBookmark}
-                      onDelete={(id) => removeBookmark(id)}
-                      onToggleFavorite={handleToggleFavorite}
-                      categories={categories}
-                      folders={folders}
-                      labels={labels}
-                      onShowToast={setToastMessage}
-                      onArchive={handleArchiveBookmark}
-                      archivingId={archivingId}
-                    />
-                    <hr className="my-6 border-[var(--border-primary)]" />
+                   <FrequentlyVisited 
+                     bookmarks={frequentlyVisitedBookmarks} 
+                     onBookmarkVisit={handleBookmarkVisit}
+                     onInfo={handleInfoBookmark}
+                     onDelete={(id) => removeBookmark(id)}
+                     onToggleFavorite={handleToggleFavorite}
+                     categories={categories}
+                     folders={folders}
+                     labels={labels}
+                     onShowToast={setToastMessage}
+                     onArchive={handleArchiveBookmark}
+                     archivingId={archivingId}
+                   />
+                   <hr className="my-6 border-[var(--border-primary)]" />
                  </>
-              )}
+             )}
             <BookmarkList
               bookmarks={filteredBookmarks}
               layout={layout}
@@ -493,20 +552,21 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
           </div>
         ) : (
            <SettingsPage 
-              onClose={() => setView('dashboard')}
-              initialTab={settingsInitialTab}
-              user={loggedInUser}
-              setUser={setUser}
-              theme={theme}
-              setTheme={setTheme}
-              layout={layout}
-              setLayout={setLayout}
-              font={font}
-              setFont={setFont}
-              onImportData={(data) => {}}
-              onExportData={() => ({bookmarks, categories, folders, labels, user: loggedInUser})}
-              onClearData={() => {}}
-          />
+             onClose={() => setView('dashboard')}
+             initialTab={settingsInitialTab}
+             user={loggedInUser}
+             setUser={setUser}
+             theme={theme}
+             setTheme={setTheme}
+             layout={layout}
+             setLayout={setLayout}
+             font={font}
+             setFont={setFont}
+             onImportData={(data) => {}}
+             onExportData={() => ({bookmarks, categories, folders, labels, user: loggedInUser})}
+             onClearData={() => {}}
+             updateUserName={updateUserName}
+           />
         )}
       </main>
 
@@ -520,6 +580,8 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
         labels={labels}
         onAddLabel={handleAddLabelSubmit}
         mode={modalMode}
+        initialFolderId={initialBookmarkFolderId}
+        initialCategoryId={initialBookmarkCategoryId}
       />
       
       <ConfirmDeleteModal
@@ -556,6 +618,13 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
         onAddLabel={handleAddLabelSubmit}
       />
       {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
+
+      {isPasswordPromptOpen && (
+        <PasswordPromptModal
+          onClose={() => setIsPasswordPromptOpen(false)}
+          onSuccess={handlePasswordSuccess}
+        />
+      )}
     </div>
   );
 }

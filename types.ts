@@ -4,7 +4,8 @@ export interface Bookmark {
   title: string;
   description: string;
   imageUrl?: string;
-  folderId: string;
+  folderId?: string;
+  categoryId?: string;
   labels: string[];
   createdAt: string;
   isFavorite: boolean;
@@ -13,12 +14,13 @@ export interface Bookmark {
   lastVisitedAt?: string;
   archivedHtml?: string;
   archiveFailed?: boolean;
+  isPrivate?: boolean;
 }
 
 export interface Folder {
   id:string;
   name: string;
-  categoryId: string;
+  categoryId: string | null;
   isPinned: boolean;
   isPrivate?: boolean;
 }

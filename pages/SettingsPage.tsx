@@ -25,9 +25,10 @@ interface SettingsPageProps {
     onImportData: (data: AppData) => void;
     onExportData: () => AppData;
     onClearData: () => void;
+    updateUserName: (newName: string) => Promise<void>;
 }
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ onClose, initialTab, user, setUser, theme, setTheme, layout, setLayout, font, setFont, onImportData, onExportData, onClearData }) => {
+const SettingsPage: React.FC<SettingsPageProps> = ({ onClose, initialTab, user, setUser, theme, setTheme, layout, setLayout, font, setFont, onImportData, onExportData, onClearData, updateUserName }) => {
     const [activeTab, setActiveTab] = useState(initialTab);
     const [confirmClear, setConfirmClear] = useState(false);
     const [confirmReset, setConfirmReset] = useState(false);
@@ -42,9 +43,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onClose, initialTab, user, 
         setUserName(user.name);
     }, [user]);
 
-    const handleSaveProfile = () => {
-        setUser({ name: userName });
-        alert('Profile saved!');
+    const handleSaveProfile = async () => {
+        if (userName.trim() !== user.name) {
+            await updateUserName(userName.trim());
+            alert('Profile saved!');
+        }
     };
 
     const handleExport = () => {

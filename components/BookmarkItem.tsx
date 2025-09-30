@@ -54,6 +54,9 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
   const isArchiving = archivingId === bookmark.id;
 
   const ArchiveButton = () => {
+    // Hide archive button for private items
+    if (isPrivateCollectionItem) return null;
+
     if (isArchiving) {
       return (
         <div className="p-1.5 bg-[var(--bg-tertiary)] rounded-md text-[var(--text-secondary)] flex items-center justify-center" title="Archiving...">

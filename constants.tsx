@@ -1,21 +1,20 @@
-import React from 'react';
 import { Bookmark, Category, Folder, Label, User } from './types';
 
 export const INITIAL_CATEGORIES: Category[] = [
-  { id: 'personal', name: 'Personal' },
-  { id: 'reading', name: 'Reading' },
-  { id: 'misc', name: 'Miscellaneous' },
+    { id: 'personal', name: 'Personal' },
+    { id: 'reading', name: 'Reading' },
+    { id: 'misc', name: 'Miscellaneous' },
 ];
 
 export const INITIAL_FOLDERS: Folder[] = [
-  { id: 'private-collections-folder', name: 'Private Collections', categoryId: 'personal', isPinned: false, isPrivate: true },
+    { id: 'private-collections-folder', name: 'Private Collections', categoryId: 'personal', isPinned: false, isPrivate: true },
 ];
 
 export const INITIAL_LABELS: Label[] = [
-  { id: 'work', name: 'Work' },
-  { id: 'inspiration', name: 'Inspiration' },
-  { id: 'recipes', name: 'Recipes' },
-  { id: 'learning', name: 'Learning' },
+    { id: 'work', name: 'Work' },
+    { id: 'inspiration', name: 'Inspiration' },
+    { id: 'recipes', name: 'Recipes' },
+    { id: 'learning', name: 'Learning' },
 ];
 
 // We are leaving this empty for now to ensure the categories and folders load correctly.
@@ -64,7 +63,7 @@ export const ICONS = {
     share: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg>,
     brokenLink: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" /></svg>,
     loader: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 animate-spin"><path d="M12 2a1 1 0 0 1 1 1v2.07a8 8 0 1 1-6.23-3.01l-1.53-1.15A10 10 0 1 0 13 2.05V3a1 1 0 0 1-2 0V2a1 1 0 0 1 1-1z"></path></svg>,
-    copy: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM5 11a1 1 0 100 2h4a1 1 0 100-2H5z" /></svg>,
+    copy: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" /><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h6a2 2 0 00-2-2H5z" /></svg>,
     spinner: <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>,
     warning: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.22 3.006-1.742 3.006H4.42c-1.522 0-2.492-1.672-1.742-3.006l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-3a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" /></svg>,
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser, updateProfile } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import LoginPage from './pages/LoginPage';
@@ -82,6 +82,13 @@ const App: React.FC = () => {
         }
     }
 
+    const updateUserName = async (newName: string) => {
+        if (auth.currentUser) {
+            await updateProfile(auth.currentUser, { displayName: newName });
+            handleSetUser({ name: newName });
+        }
+    };
+
     if (loading) {
         return <div className="h-screen w-screen flex items-center justify-center bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark">{ICONS.loader}</div>;
     }
@@ -100,6 +107,7 @@ const App: React.FC = () => {
                     setFont={setFont}
                     onLogout={() => auth.signOut()}
                     onPrivateFolderClick={() => {}}
+                    updateUserName={updateUserName}
                 />
             ) : isRegistering ? (
                 <RegisterPage onSwitchToLogin={() => setIsRegistering(false)} />

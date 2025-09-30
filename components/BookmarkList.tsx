@@ -45,8 +45,16 @@ const BookmarkList: React.FC<BookmarkListProps> = ({ bookmarks, layout, onInfo, 
       }`}
     >
       {bookmarkList.map((bookmark) => {
-        const folder = folders.find(f => f.id === bookmark.folderId);
-        const category = folder ? categories.find(c => c.id === folder.categoryId) : undefined;
+        let bookmarkFolder: Folder | undefined;
+        let bookmarkCategory: Category | undefined;
+
+        if (bookmark.folderId) {
+          bookmarkFolder = folders.find(f => f.id === bookmark.folderId);
+          bookmarkCategory = bookmarkFolder ? categories.find(c => c.id === bookmarkFolder.categoryId) : undefined;
+        } else if (bookmark.categoryId) {
+          bookmarkCategory = categories.find(c => c.id === bookmark.categoryId);
+        }
+
         return (
             <BookmarkItem
               key={bookmark.id}
@@ -56,8 +64,8 @@ const BookmarkList: React.FC<BookmarkListProps> = ({ bookmarks, layout, onInfo, 
               onDelete={onDelete}
               onToggleFavorite={onToggleFavorite}
               onBookmarkVisit={onBookmarkVisit}
-              category={category}
-              folder={folder}
+              category={bookmarkCategory}
+              folder={bookmarkFolder}
               labels={labels.filter(l => bookmark.labels.includes(l.id))}
               isReadingListItem={isReadingListItem}
               onMarkAsUnread={onMarkAsUnread}

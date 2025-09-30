@@ -15,7 +15,6 @@ interface SidebarProps {
   onUpdateFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string, name: string) => void;
   onDeleteLabel: (id: string, name: string) => void;
-  onTogglePin: (id: string) => void;
   onPrivateFolderClick: () => void;
   onShareFolder: (id: string, name: string) => void;
 }
@@ -52,7 +51,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     onAddCategory, onUpdateCategory, onDeleteCategory, 
     onAddFolder, onUpdateFolder, onDeleteFolder,
     onDeleteLabel,
-    onTogglePin,
     onPrivateFolderClick,
     onShareFolder,
 }) => {
@@ -64,11 +62,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   const [editingItem, setEditingItem] = useState<{type: 'category' | 'folder', id: string, name: string} | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const hasSelectedOnFocus = useRef(false); // New ref to track if select() has been called for the current editing session.
 
   useEffect(() => {
-    if (editingItem && editInputRef.current) {
+    if (editingItem && editInputRef.current && !hasSelectedOnFocus.current) {
       editInputRef.current.focus();
       editInputRef.current.select();
+      hasSelectedOnFocus.current = true;
+    } else if (!editingItem) {
+      hasSelectedOnFocus.current = false; // Reset when not editing
     }
   }, [editingItem]);
   
@@ -141,7 +143,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (e.key === 'Escape') handleCancelEdit();
   };
   
-  const PinnedFolders = folders.filter(f => f.isPinned);
+  const MISC_CATEGORY_ID = 'misc'; // Assuming 'misc' is the ID for Miscellaneous category
 
   return (
     <aside className="w-72 h-screen flex flex-col p-4 bg-[var(--bg-secondary)] border-r border-[var(--border-primary)]">
@@ -167,19 +169,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </SidebarItem>
           </div>
 
-          {PinnedFolders.length > 0 && (
-            <div>
-              <h2 className="px-2 mb-2 text-xs font-semibold tracking-wider text-[var(--text-tertiary)] uppercase">Pinned</h2>
-              <div className="space-y-1">
-                {PinnedFolders.map(folder => (
-                  <SidebarItem key={folder.id} onClick={() => setActiveFilter({ type: 'pinned', id: folder.id, name: folder.name })} isActive={activeFilter.id === folder.id}>
-                    <span className="mr-3">{ICONS.pin}</span> {folder.name}
-                  </SidebarItem>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div>
               <div className="flex items-center justify-between px-2 mb-2">
                   <h2 className="text-xs font-semibold tracking-wider text-[var(--text-tertiary)] uppercase">Categories</h2>
@@ -202,11 +191,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                               {editingItem?.type === 'category' && editingItem.id === cat.id ? (
                                 <input type="text" ref={editInputRef} value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} onBlur={handleSaveEdit} onKeyDown={handleEditKeyDown} className="w-full text-sm mr-2 px-2 py-1.5 bg-white dark:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"/>
                               ) : (
-                                <SidebarItem onClick={() => setActiveFilter({type: 'category', id: cat.id, name: cat.name})} isActive={activeFilter.type==='category' && activeFilter.id === cat.id} className="flex-1">
+                                <SidebarItem onClick={() => { setActiveFilter({type: 'category', id: cat.id, name: cat.name}); handleToggleCategory(cat.id); }} isActive={activeFilter.type==='category' && activeFilter.id === cat.id} className="flex-1">
                                     <span className="mr-3">{ICONS.folder}</span> {cat.name}
                                 </SidebarItem>
                               )}
-                              <button onClick={() => setAddingFolderTo(cat.id)} className="p-1 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100"><span className="sr-only">Add folder to {cat.name}</span>{ICONS.add}</button>
+                              {cat.id !== MISC_CATEGORY_ID && (
+                                <button onClick={() => { setAddingFolderTo(cat.id); handleToggleCategory(cat.id); }} className="p-1 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100"><span className="sr-only">Add folder to {cat.name}</span>{ICONS.add}</button>
+                              )}
                             </>
                           </EditableItemWrapper>
                           {expandedCategories.includes(cat.id) && (
@@ -246,9 +237,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                     </>
                                                 ) : (
                                                     <SidebarItem onClick={() => setActiveFilter({type: 'folder', id: folder.id, name: folder.name})} isActive={activeFilter.id === folder.id} className="flex-1">
-                                                        <span className="w-6 mr-3 flex items-center justify-center">
-                                                            <button onClick={(e) => { e.stopPropagation(); onTogglePin(folder.id)}} className={`p-0.5 rounded-full ${folder.isPinned ? 'text-[var(--accent-primary)]' : 'text-transparent group-hover:text-[var(--text-tertiary)]'}`}>{ICONS.pin}</button>
-                                                        </span>
+                                                        <span className="w-6 mr-3 flex items-center justify-center"></span>
                                                         {folder.name}
                                                     </SidebarItem>
                                                 )}

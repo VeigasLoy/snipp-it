@@ -1,6 +1,6 @@
-import React from 'react';
-import { Bookmark, Category, Label, Layout, Folder } from '../types';
-import { ICONS, PRIVATE_SETTINGS } from '../constants';
+import React, { useMemo } from 'react';
+import { Bookmark, Category, Label, Layout, Folder } from './types';
+import { ICONS, PRIVATE_SETTINGS } from './constants';
 
 interface BookmarkItemProps {
   bookmark: Bookmark;
@@ -49,9 +49,21 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
   };
 
   const isPrivateCollectionItem = bookmark.folderId === PRIVATE_SETTINGS.FOLDER_ID;
+
+  const locationDisplay = useMemo(() => {
+    if (folder) {
+      // If the bookmark is in a folder, display Category / Folder
+      // The 'category' prop here refers to the parent category of the folder
+      return `${category?.name ? `${category.name} / ` : ''}${folder.name}`;
+    } else if (category) {
+      // If the bookmark is directly in a category (no folder)
+      return category.name;
+    }
+    return null; // No location to display
+  }, [category, folder]);
   
   const ActionButtons = () => (
-    <>
+    <> 
       {bookmark.archivedHtml && (
         <button onClick={handleViewArchive} className="p-1.5 bg-[var(--bg-tertiary)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors" title="View archived page">
           <span className="sr-only">View Archive</span>{ICONS.archive}
@@ -131,10 +143,12 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
               <h3 className="font-semibold text-[var(--text-primary)] leading-tight truncate hover:text-[var(--accent-primary)] transition-colors">{bookmark.title}</h3>
             </a>
           </div>
+          {locationDisplay && (
+              <div className="text-xs text-[var(--text-tertiary)] mb-3">
+                  {locationDisplay}
+              </div>
+          )}
           <p className="text-sm text-[var(--text-secondary)] mb-3 flex-grow">{bookmark.description}</p>
-          <div className="text-xs text-[var(--text-tertiary)] mb-3">
-              {category?.name} / {folder?.name}
-          </div>
           <div className="flex flex-wrap gap-1.5">
             {labels.map(label => (
                 <span key={label.id} className="text-xs bg-[var(--bg-tertiary)] text-[var(--text-secondary)] px-2 py-0.5 rounded-full">{label.name}</span>
@@ -167,6 +181,11 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
           <h3 className="font-medium text-[var(--text-primary)] truncate hover:text-[var(--accent-primary)] transition-colors">{bookmark.title}</h3>
           <p className="text-sm text-[var(--text-tertiary)] truncate">{bookmark.url}</p>
         </a>
+        {locationDisplay && (
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                {locationDisplay}
+            </p>
+        )}
       </div>
        <div className="flex flex-wrap gap-1.5 mx-4">
             {labels.map(label => (
