@@ -69,3 +69,5 @@ export type ActiveFilter = {
     id: string | string[];
     name: string;
 }
+
+export type SortByType = 'newest' | 'oldest' | 'most-visited' | 'title';

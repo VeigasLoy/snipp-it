@@ -39,7 +39,12 @@ const FrequentlyVisited: React.FC<FrequentlyVisitedProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {bookmarks.map(bookmark => {
             const folder = folders.find(f => f.id === bookmark.folderId);
-            const category = folder ? categories.find(c => c.id === folder.categoryId) : undefined;
+            // Determine category: first check if bookmark has a direct categoryId, then check if it's in a folder that has a category
+            const category = bookmark.categoryId 
+                ? categories.find(c => c.id === bookmark.categoryId)
+                : folder 
+                    ? categories.find(c => c.id === folder.categoryId) 
+                    : undefined;
             return (
                 <BookmarkItem
                     key={bookmark.id}

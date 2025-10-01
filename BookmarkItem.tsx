@@ -57,7 +57,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
       return `${category?.name ? `${category.name} / ` : ''}${folder.name}`;
     } else if (category) {
       // If the bookmark is directly in a category (no folder)
-      return category.name;
+      return `${category.name} /`;
     }
     return null; // No location to display
   }, [category, folder]);
