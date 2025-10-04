@@ -15,6 +15,8 @@ interface BookmarkFormModalProps {
   mode: 'view' | 'edit';
   initialFolderId?: string | null; // New prop
   initialCategoryId?: string | null; // New prop
+  initialUrl?: string | null; // New prop for dropped URL
+  initialHtmlContent?: string | null; // New prop for dropped HTML
 }
 
 const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
@@ -27,11 +29,14 @@ const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
   labels,
   onAddLabel,
   mode,
-  initialFolderId, // Destructure new prop
-  initialCategoryId, // Destructure new prop
+  initialFolderId,
+  initialCategoryId,
+  initialUrl,
+  initialHtmlContent, // Destructure new prop
 }) => {
   const [formData, setFormData] = useState({
     url: '',
+    html: '', // New state for HTML content
     title: '',
     description: '',
     notes: '',
@@ -43,27 +48,33 @@ const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
   });
   const [newLabelName, setNewLabelName] = useState('');
   const [isEditing, setIsEditing] = useState(mode === 'edit');
+  const [contentType, setContentType] = useState<'url' | 'html'>(bookmark?.archivedHtml ? 'html' : 'url'); // New state for content type
   
   const populateForm = (bm: Bookmark | null) => {
-      // Prioritize initialFolderId/initialCategoryId if provided, otherwise use bookmark's location
+      const determinedContentType = initialHtmlContent || bm?.archivedHtml ? 'html' : 'url';
+      
       const initialSelectedLocation = initialFolderId || initialCategoryId || bm?.folderId || bm?.categoryId || '';
+      
       setFormData({
-        url: bm?.url || '',
+        url: determinedContentType === 'url' ? String(initialUrl || bm?.url || '') : '', // Explicitly cast to String
+        html: determinedContentType === 'html' ? (initialHtmlContent || bm?.archivedHtml || '') : '', // Set HTML only if content type is HTML
         title: bm?.title || '',
         description: bm?.description || '',
         notes: bm?.notes || '',
         imageUrl: bm?.imageUrl || '',
-        folderId: initialFolderId || bm?.folderId || null, // Set folderId from initial prop
-        categoryId: initialCategoryId || bm?.categoryId || null, // Set categoryId from initial prop
+        folderId: initialFolderId || bm?.folderId || null,
+        categoryId: initialCategoryId || bm?.categoryId || null,
         labels: bm?.labels || [],
         selectedLocation: initialSelectedLocation,
       });
+      // Set content type based on initialHtmlContent or bookmark data
+      setContentType(determinedContentType);
   }
 
   useEffect(() => {
     setIsEditing(mode === 'edit');
     populateForm(bookmark);
-  }, [bookmark, isOpen, folders, categories, mode, initialFolderId, initialCategoryId]); // Add new props to dependencies
+  }, [bookmark, isOpen, folders, categories, mode, initialFolderId, initialCategoryId, initialUrl, initialHtmlContent]); // Add initialHtmlContent to dependencies
   
   const handleCancelEdit = () => {
     if (mode === 'view') {
@@ -88,19 +99,15 @@ const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
         newFolderId = null;
         newCategoryId = null;
     } else {
-        // Explicitly check if the value is a folder ID
         const foundFolder = folders.find(f => f.id === value);
         if (foundFolder) {
             newFolderId = value;
-            newCategoryId = null; // Clear category if a folder is selected
+            newCategoryId = null;
         } else {
-            // If not a folder, check if it's a category ID
             const foundCategory = categories.find(cat => cat.id === value);
             if (foundCategory) {
                 newCategoryId = value;
-                newFolderId = null; // Clear folder if category is directly selected
-            } else {
-                console.warn('Selected location does not match any known category or folder:', value);
+                newFolderId = null;
             }
         }
     }
@@ -137,14 +144,15 @@ const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.url || !formData.title) return;
+    if (!formData.title) return;
 
-    const dataToSave = { ...formData };
-    // Remove selectedLocation as it's not part of the Bookmark interface
-    delete dataToSave.selectedLocation;
+    const dataToSave: Omit<Bookmark, 'id' | 'createdAt' | 'isFavorite' | 'visitCount' | 'lastVisitedAt'> = {
+        ...formData,
+        url: contentType === 'url' ? formData.url : '',
+        archivedHtml: contentType === 'html' ? formData.html : '',
+    };
+    delete (dataToSave as any).selectedLocation;
 
-    // Ensure nulls are passed if no folderId or categoryId is set (already handled by handleLocationChange)
-    // This step is mostly for safety and clarity, as handleLocationChange should ensure proper nulls.
     if (dataToSave.folderId === '') dataToSave.folderId = null;
     if (dataToSave.categoryId === '') dataToSave.categoryId = null;
 
@@ -180,10 +188,47 @@ const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
         <>
             <h2 className="text-2xl font-bold mb-6">{bookmark ? 'Edit Bookmark' : 'New Bookmark'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="url" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">URL</label>
-                <input type="url" name="url" value={formData.url} onChange={handleChange} required className="w-full px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"/>
+              {/* Content Type Selector */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Content Type</label>
+                <div className="flex space-x-4">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      className="form-radio"
+                      name="contentType"
+                      value="url"
+                      checked={contentType === 'url'}
+                      onChange={() => setContentType('url')}
+                    />
+                    <span className="ml-2 text-[var(--text-primary)]">URL</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      className="form-radio"
+                      name="contentType"
+                      value="html"
+                      checked={contentType === 'html'}
+                      onChange={() => setContentType('html')}
+                    />
+                    <span className="ml-2 text-[var(--text-primary)]">HTML</span>
+                  </label>
+                </div>
               </div>
+
+              {contentType === 'url' ? (
+                <div>
+                  <label htmlFor="url" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">URL</label>
+                  <input type="url" name="url" value={formData.url} onChange={handleChange} required={contentType === 'url'} className="w-full px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"/>
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="html" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">HTML Content</label>
+                  <textarea name="html" value={formData.html} onChange={handleChange} required={contentType === 'html'} rows={10} className="w-full px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]" placeholder="Paste your HTML content here..."></textarea>
+                </div>
+              )}
+
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Title</label>
                 <input type="text" name="title" value={formData.title} onChange={handleChange} required className="w-full px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"/>
@@ -198,7 +243,7 @@ const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
               </div>
                <div>
                 <label htmlFor="notes" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Notes</label>
-                <textarea name="notes" value={formData.notes} onChange={handleChange} rows={4} className="w-full px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]" placeholder="Add personal notes here..."/>
+                <textarea name="notes" value={formData.notes} onChange={handleChange} rows={4} className="w-full px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]" placeholder="Add personal notes here..."></textarea>
               </div>
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Category/Folder</label>
@@ -246,10 +291,25 @@ const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
         ) : (
         <>
             <h2 className="text-2xl font-bold mb-2">{bookmark?.title}</h2>
-            <a href={bookmark?.url} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--accent-primary)] hover:underline break-all">{bookmark?.url}</a>
+            {bookmark?.url && (
+                <a href={bookmark.url} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--accent-primary)] hover:underline break-all">{bookmark.url}</a>
+            )}
+            {bookmark?.archivedHtml && (
+                <div className="text-sm text-[var(--text-primary)] mt-2"><i>Archived HTML Content</i></div>
+            )}
             
             {bookmark?.imageUrl && (
                 <img src={bookmark.imageUrl} alt="Bookmark preview" className="mt-4 rounded-lg max-h-48 w-full object-contain bg-[var(--bg-tertiary)]" />
+            )}
+            {bookmark?.archivedHtml && !bookmark?.imageUrl && ( // Display iframe only if archivedHtml exists and no imageUrl
+                <div className="mt-4 rounded-lg max-h-64 h-64 w-full bg-[var(--bg-tertiary)] overflow-hidden border border-[var(--border-primary)]">
+                    <iframe 
+                        srcDoc={bookmark.archivedHtml} 
+                        title="HTML Content Preview" 
+                        className="w-full h-full border-none"
+                        sandbox="allow-same-origin allow-scripts" // Basic sandboxing for safety
+                    ></iframe>
+                </div>
             )}
 
             <div className="mt-6 space-y-4">

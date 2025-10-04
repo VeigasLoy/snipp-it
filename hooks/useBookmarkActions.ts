@@ -39,8 +39,30 @@ export const useBookmarkActions = ({
   const [isBulkMoveModalOpen, setBulkMoveModalOpen] = useState(false);
   const [isBulkAddLabelsModalOpen, setBulkAddLabelsModalOpen] = useState(false);
 
-  const handleAddBookmarkClick = () => {
-    setEditingBookmark(null);
+  const handleAddBookmarkClick = (url?: string, htmlContent?: string) => {
+    // Ensure url is always a string, even if it comes in as an object somehow.
+    const safeUrl = (typeof url === 'string' ? url : '');
+
+    if (safeUrl || htmlContent) {
+        setEditingBookmark({
+            id: 'temporary', // A temporary ID for a new bookmark from drag-and-drop
+            url: safeUrl,
+            archivedHtml: htmlContent || '', // Set archivedHtml if htmlContent is provided
+            title: '',
+            description: '',
+            notes: '',
+            imageUrl: '',
+            folderId: null,
+            categoryId: null,
+            labels: [],
+            createdAt: new Date().toISOString(),
+            isFavorite: false,
+            visitCount: 0,
+            isPrivate: false,
+        });
+    } else {
+        setEditingBookmark(null);
+    }
     setModalMode('edit');
 
     if (activeFilter.type === 'folder') {
@@ -65,12 +87,12 @@ export const useBookmarkActions = ({
   const handleSaveBookmark = (bookmarkData: Omit<Bookmark, 'id' | 'createdAt' | 'isFavorite' | 'visitCount' | 'lastVisitedAt'>, id?: string) => {
     const dataToSave = {
       ...bookmarkData,
-      isPrivate: bookmarkData.folderId === PRIVATE_SETTINGS.FOLDER_ID,
+      isPrivate: bookmarkData.categoryId === PRIVATE_SETTINGS.CATEGORY_ID,
       folderId: bookmarkData.folderId || null,
       categoryId: bookmarkData.categoryId || null,
     };
 
-    if (id) {
+    if (id && id !== 'temporary') { // Check for temporary ID
       updateBookmark(id, dataToSave);
       setToastMessage('Bookmark updated successfully!');
     } else {
@@ -121,9 +143,9 @@ export const useBookmarkActions = ({
     }
   };
 
-  const handleBulkMove = (folderId: string) => {
-    const isPrivate = folderId === PRIVATE_SETTINGS.FOLDER_ID;
-    bulkUpdateBookmarks(selectedBookmarkIds, { folderId, isPrivate, categoryId: null }); 
+  const handleBulkMove = (categoryId: string, folderId: string | null) => {
+    const isPrivate = categoryId === PRIVATE_SETTINGS.CATEGORY_ID;
+    bulkUpdateBookmarks(selectedBookmarkIds, { categoryId, folderId: isPrivate ? null : folderId, isPrivate }); 
     setBulkMoveModalOpen(false);
     setSelectedBookmarkIds([]);
   };

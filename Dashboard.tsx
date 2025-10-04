@@ -19,6 +19,7 @@ import { useShareFolder } from './hooks/useShareFolder';
 import { useCategoryFolderManagement } from './hooks/useCategoryFolderManagement';
 import { useLabelManagement } from './hooks/useLabelManagement';
 import { useBookmarkActions } from './hooks/useBookmarkActions';
+import { usePrivateBookmarks } from './hooks/usePrivateBookmarks'; // Import the new hook
 import DashboardHeader from './components/DashboardHeader';
 
 type DeletionObject = {
@@ -41,25 +42,44 @@ interface DashboardProps {
     onLogout: () => void;
     onPrivateFolderClick: () => void;
     updateUserName: (newName: string) => Promise<void>;
+    droppedUrl: string | null;
+    setDroppedUrl: (url: string | null) => void;
+    droppedHtmlContent: string | null;
+    setDroppedHtmlContent: (html: string | null) => void;
 }
 
-function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLayout, font, setFont, onLogout, onPrivateFolderClick, updateUserName }: DashboardProps) {
+function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLayout, font, setFont, onLogout, onPrivateFolderClick, updateUserName, droppedUrl, setDroppedUrl, droppedHtmlContent, setDroppedHtmlContent }: DashboardProps) {
   const { data: bookmarks, add: addBookmark, update: updateBookmark, remove: removeBookmark, bulkUpdate: bulkUpdateBookmarks, bulkDelete: bulkDeleteBookmarks } = useFirestore<Bookmark>('bookmarks', loggedInUser.id);
-  const { data: categories, add: addCategory, update: updateCategory, remove: removeCategory } = useFirestore<Category>('categories', loggedInUser.id);
+  const { data: firestoreCategories, add: addCategory, update: updateCategory, remove: removeCategory } = useFirestore<Category>('categories', loggedInUser.id);
   const { data: folders, add: addFolder, update: updateFolder, remove: removeFolder } = useFirestore<Folder>('folders', loggedInUser.id);
   const { data: labels, add: addLabel, remove: removeLabel } = useFirestore<Label>('labels', loggedInUser.id);
   
+  // Ensure Private Collections category is always present and at the end
+  const categories = useMemo(() => {
+    const privateCategory = firestoreCategories.find(cat => cat.id === PRIVATE_SETTINGS.CATEGORY_ID);
+    const otherCategories = firestoreCategories.filter(cat => cat.id !== PRIVATE_SETTINGS.CATEGORY_ID);
+
+    if (privateCategory) {
+      return [...otherCategories, privateCategory];
+    } else {
+      // If private category doesn't exist, add it to the end
+      return [...otherCategories, { id: PRIVATE_SETTINGS.CATEGORY_ID, name: PRIVATE_SETTINGS.FOLDER_NAME }];
+    }
+  }, [firestoreCategories]);
+
   const [isSidebarOpenOnMobile, setSidebarOpenOnMobile] = useState(false);
 
   const [view, setView] = useState<'dashboard' | 'settings'>('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>({ type: 'all', id: 'all', name: 'All Bookmarks' });
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>({ type: 'all', id: 'all', name: 'My bookmarks' });
   
   const [itemToDelete, setItemToDelete] = useState<DeletionObject | null>(null);
   const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
   
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
+  const [activeMainMenuItem, setActiveMainMenuItem] = useState<'My bookmarks' | 'Collaboration'>('My bookmarks'); // Updated type and initial value
+
 
   const { archivingId, handleArchiveBookmark } = useArchiveBookmarks({ updateBookmark, onShowToast: setToastMessage });
   const { handleShareFolder } = useShareFolder({ bookmarks, onShowToast: setToastMessage });
@@ -128,6 +148,61 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
     setItemToDelete
   });
 
+  // New private bookmarks hook
+  const {
+    privateBookmarks,
+    selectedPrivateBookmarkIds,
+    setSelectedPrivateBookmarkIds,
+    handleToggleSelectPrivateBookmark,
+    handleSelectAllPrivateBookmarks,
+    handleRemovePrivateBookmark,
+    handleBulkDeletePrivateBookmarks,
+    handleBulkMovePrivate,
+    handleBulkAddLabelsPrivate,
+  } = usePrivateBookmarks({
+    userId: loggedInUser.id,
+    bookmarks,
+    updateBookmark,
+    removeBookmark,
+    bulkUpdateBookmarks,
+    bulkDeleteBookmarks,
+    setToastMessage,
+    labels,
+    setBulkMoveModalOpen, // Pass setBulkMoveModalOpen
+    setBulkAddLabelsModalOpen, // Pass setBulkAddLabelsModalOpen
+  });
+
+  // Determine if the current view is a private collection
+  const isPrivateCollectionView = activeFilter.id === PRIVATE_SETTINGS.CATEGORY_ID && activeFilter.type === 'category';
+
+  // Conditional filtered bookmarks and selection handlers
+  const currentFilteredBookmarks = isPrivateCollectionView ? privateBookmarks : filteredBookmarks;
+  const currentSelectedBookmarkIds = isPrivateCollectionView ? selectedPrivateBookmarkIds : selectedBookmarkIds;
+  const handleCurrentToggleSelectBookmark = isPrivateCollectionView ? handleToggleSelectPrivateBookmark : handleToggleSelectBookmark;
+  const handleCurrentSelectAll = isPrivateCollectionView ? handleSelectAllPrivateBookmarks : handleSelectAll;
+
+  const handleCurrentBulkMoveWrapper = (categoryId: string, folderId: string | null) => {
+    if (isPrivateCollectionView) {
+      handleBulkMovePrivate(categoryId, folderId);
+    } else {
+      // Pass both categoryId and folderId explicitly
+      handleBulkMove(categoryId, folderId);
+    }
+  };
+
+  const handleCurrentBulkAddLabels = isPrivateCollectionView ? handleBulkAddLabelsPrivate : handleBulkAddLabels;
+
+  // Handle dropped URL or HTML content
+  useEffect(() => {
+    if (droppedUrl) {
+      handleAddBookmarkClick(droppedUrl); 
+      setDroppedUrl(null); 
+    } else if (droppedHtmlContent) {
+      handleAddBookmarkClick(undefined, droppedHtmlContent); // Pass html content
+      setDroppedHtmlContent(null); // Clear html content after processing
+    }
+  }, [droppedUrl, setDroppedUrl, droppedHtmlContent, setDroppedHtmlContent, handleAddBookmarkClick]);
+
   useEffect(() => {
     if (toastMessage) {
         const timer = setTimeout(() => setToastMessage(null), 3000);
@@ -136,8 +211,12 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
   }, [toastMessage]);
 
   useEffect(() => {
-    setSelectedBookmarkIds([]);
-  }, [activeFilter, searchTerm]);
+    // Clear selection when filter changes, but only for non-private collections
+    // Private collection selection is managed by its own state
+    if (!isPrivateCollectionView) {
+      setSelectedBookmarkIds([]);
+    }
+  }, [activeFilter, searchTerm, isPrivateCollectionView, setSelectedBookmarkIds]);
   
   const handleOpenSettings = (tab: string = 'profile') => {
     setSettingsInitialTab(tab);
@@ -150,7 +229,7 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
 
   const handlePasswordSuccess = () => {
     setIsPasswordPromptOpen(false);
-    setActiveFilter({ type: 'folder', id: PRIVATE_SETTINGS.FOLDER_ID, name: 'Private Bookmarks' });
+    setActiveFilter({ type: 'category', id: PRIVATE_SETTINGS.CATEGORY_ID, name: 'Private Bookmarks' });
   };
 
   const frequentlyVisitedBookmarks = useMemo(() => {
@@ -190,8 +269,13 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
         });
         removeLabel(id);
     } else if (type === 'bookmark-bulk' && Array.isArray(id)) {
-        bulkDeleteBookmarks(id);
-        setSelectedBookmarkIds([]);
+        // Use private bulk delete if in private view, otherwise use general bulk delete
+        if (isPrivateCollectionView) {
+            handleBulkDeletePrivateBookmarks();
+        } else {
+            bulkDeleteBookmarks(id);
+            setSelectedBookmarkIds([]);
+        }
     }
 
     setItemToDelete(null);
@@ -237,6 +321,9 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
           onPrivateFolderClick={handlePrivateFolderClickWithPassword}
           onShareFolder={handleShareFolder}
           onTogglePinFolder={handleTogglePinFolder}
+          onCloseSidebar={() => setSidebarOpenOnMobile(false)}
+          onSelectMainMenuItem={setActiveMainMenuItem}  // Added missing prop
+          activeMainMenuItem={activeMainMenuItem}      // Added missing prop
         />
       </div>
 
@@ -257,15 +344,17 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
             onLogout={onLogout}
             onAddBookmark={handleAddBookmarkClick}
             onToggleSidebar={() => setSidebarOpenOnMobile(prev => !prev)}
+            onSelectMainMenuItem={setActiveMainMenuItem}
+            activeMainMenuItem={activeMainMenuItem}
           />
           {view === 'dashboard' ? (
             <DashboardHeader
               activeFilter={activeFilter}
               sortBy={sortBy}
               setSortBy={setSortBy}
-              filteredBookmarks={filteredBookmarks}
-              selectedBookmarkIds={selectedBookmarkIds}
-              handleSelectAll={handleSelectAll}
+              filteredBookmarks={currentFilteredBookmarks} // Use conditional bookmarks
+              selectedBookmarkIds={currentSelectedBookmarkIds} // Use conditional selected IDs
+              handleSelectAll={handleCurrentSelectAll} // Use conditional select all handler
             />
           ) : null}
         </div>
@@ -291,10 +380,16 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
                  </>
              )}
             <BookmarkList
-              bookmarks={filteredBookmarks}
+              bookmarks={currentFilteredBookmarks} // Use conditional bookmarks
               layout={layout}
               onInfo={handleInfoBookmark}
-              onDelete={(id) => removeBookmark(id)}
+              onDelete={(id) => {
+                  if (isPrivateCollectionView) {
+                      handleRemovePrivateBookmark(id);
+                  } else {
+                      removeBookmark(id);
+                  }
+              }}
               onToggleFavorite={handleToggleFavorite}
               onBookmarkVisit={handleBookmarkVisit}
               categories={categories}
@@ -302,8 +397,8 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
               labels={labels}
               isReadingListView={isReadingListView}
               onMarkAsUnread={handleMarkAsUnread}
-              selectedBookmarkIds={selectedBookmarkIds}
-              onToggleSelect={handleToggleSelectBookmark}
+              selectedBookmarkIds={currentSelectedBookmarkIds} // Use conditional selected IDs
+              onToggleSelect={handleCurrentToggleSelectBookmark} // Use conditional toggle select handler
               onShowToast={setToastMessage}
               onArchive={(id) => handleArchiveBookmark(bookmarks.find(b => b.id === id)!)}
               archivingId={archivingId}
@@ -341,6 +436,8 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
         mode={modalMode}
         initialFolderId={initialBookmarkFolderId}
         initialCategoryId={initialBookmarkCategoryId}
+        initialUrl={droppedUrl} 
+        initialHtmlContent={droppedHtmlContent} // Pass droppedHtmlContent here
       />
       
       <ConfirmDeleteModal
@@ -351,28 +448,48 @@ function Dashboard({ user: loggedInUser, setUser, theme, setTheme, layout, setLa
         itemType={itemToDelete?.type === 'bookmark-bulk' ? 'items' : itemToDelete?.type || ''}
       />
 
-      {selectedBookmarkIds.length > 0 && (
+      {currentSelectedBookmarkIds.length > 0 && (
         <div className="fixed bottom-0 left-0 md:left-72 right-0 z-30 flex justify-center">
             <BulkActionBar 
-                count={selectedBookmarkIds.length}
+                count={currentSelectedBookmarkIds.length}
                 onMove={() => setBulkMoveModalOpen(true)}
                 onAddLabels={() => setBulkAddLabelsModalOpen(true)}
-                onDelete={handleOpenBulkDeleteModal}
-                onClear={() => setSelectedBookmarkIds([])}
+                onDelete={() => {
+                    if (isPrivateCollectionView) {
+                        handleBulkDeletePrivateBookmarks();
+                    } else {
+                        handleOpenBulkDeleteModal();
+                    }
+                }}
+                onClear={() => {
+                    if (isPrivateCollectionView) {
+                        setSelectedPrivateBookmarkIds([]);
+                    } else {
+                        setSelectedBookmarkIds([]);
+                    }
+                }}
             />
         </div>
       )}
       <BulkMoveModal 
         isOpen={isBulkMoveModalOpen}
         onClose={() => setBulkMoveModalOpen(false)}
-        onMove={handleBulkMove}
+        onMove={(categoryId, folderId) => {
+            handleCurrentBulkMoveWrapper(categoryId, folderId);
+        }}
         categories={categories}
         folders={folders}
       />
       <BulkAddLabelsModal
         isOpen={isBulkAddLabelsModalOpen}
         onClose={() => setBulkAddLabelsModalOpen(false)}
-        onSave={handleBulkAddLabels}
+        onSave={(labelIds) => {
+            if (isPrivateCollectionView) {
+                handleCurrentBulkAddLabels(labelIds);
+            } else {
+                handleBulkAddLabels(labelIds);
+            }
+        }}
         labels={labels}
         onAddLabel={handleAddLabelSubmit}
       />

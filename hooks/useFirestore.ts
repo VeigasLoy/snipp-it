@@ -19,7 +19,16 @@ export function useFirestore<T extends { id: string }>(collectionName: string, u
         const q = query(collectionRef);
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const documents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+            const documents = snapshot.docs.map(doc => {
+                const docData = doc.data();
+                // Explicitly cast url and archivedHtml to string to prevent [object Object] errors
+                const processedData = {
+                    ...docData,
+                    url: typeof docData.url === 'string' ? docData.url : '',
+                    archivedHtml: typeof docData.archivedHtml === 'string' ? docData.archivedHtml : '',
+                };
+                return { id: doc.id, ...processedData } as unknown as T;
+            });
             setData(documents);
             setLoading(false);
         }, (err) => {

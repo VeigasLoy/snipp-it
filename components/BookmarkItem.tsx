@@ -25,7 +25,15 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
   const faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain_url=${bookmark.url}`;
   
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (isSelected && onToggleSelect) {
+    if (bookmark.archivedHtml) {
+      e.preventDefault();
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(bookmark.archivedHtml);
+        newWindow.document.title = bookmark.title || 'Archived Page';
+        newWindow.document.close();
+      }
+    } else if (isSelected && onToggleSelect) {
       e.preventDefault();
       onToggleSelect(bookmark.id);
     } else {
@@ -50,7 +58,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
     });
   };
 
-  const isPrivateCollectionItem = bookmark.folderId === PRIVATE_SETTINGS.FOLDER_ID;
+  const isPrivateCollectionItem = bookmark.categoryId === PRIVATE_SETTINGS.CATEGORY_ID;
   const isArchiving = archivingId === bookmark.id;
 
   const ArchiveButton = () => {
@@ -105,11 +113,25 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
   const selectionClasses = isSelected ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-primary)] ring-[var(--accent-primary)]' : '';
   const selectionWrapperClasses = isSelected ? 'bg-[var(--accent-primary)]/5' : ''
 
+  const FaviconDisplay = () => {
+    if (bookmark.archivedHtml && !bookmark.url) {
+      return <div className="w-5 h-5 mr-2 mt-0.5 rounded-sm flex items-center justify-center text-[var(--text-secondary)]">{ICONS.htmlFile}</div>;
+    } else {
+      return <img src={faviconUrl} alt="favicon" className="w-5 h-5 mr-2 mt-0.5 rounded-sm" />;
+    }
+  };
+
   if (layout === Layout.CARD) {
-    const imageSrc = bookmark.imageUrl || `https://s.wordpress.com/mshots/v1/${encodeURIComponent(bookmark.url)}?w=400&h=300`;
+    const imageContent = bookmark.archivedHtml && !bookmark.imageUrl ? (
+        <div className="w-full h-full flex items-center justify-center bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
+            {ICONS.htmlFile}
+        </div>
+    ) : (
+        <img src={bookmark.imageUrl || `https://s.wordpress.com/mshots/v1/${encodeURIComponent(bookmark.url)}?w=400&h=300`} alt={bookmark.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+    );
     return (
       <div className={`group aspect-[4/3] relative rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${selectionClasses} ${selectionWrapperClasses}`}>
-        {onToggleSelect && !isPrivateCollectionItem && (
+        {onToggleSelect && (
             <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" style={isSelected ? {opacity: 1} : {}}>
               <input 
                   type="checkbox" 
@@ -121,7 +143,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
             </div>
         )}
         <a href={bookmark.url} target="_blank" rel="noopener noreferrer" className="block w-full h-full" onClick={handleLinkClick}>
-          <img src={imageSrc} alt={bookmark.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+          {imageContent}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
           <h3 className="absolute bottom-0 left-0 p-3 text-white font-bold leading-tight drop-shadow-md">{bookmark.title}</h3>
         </a>
@@ -134,10 +156,20 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
 
 
   if (layout === Layout.GRID) {
-    const imageSrc = bookmark.imageUrl || `https://s.wordpress.com/mshots/v1/${encodeURIComponent(bookmark.url)}?w=400&h=200`;
+    const imageContent = bookmark.archivedHtml && !bookmark.imageUrl ? (
+        <div className="w-full h-32 flex items-center justify-center bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
+            {ICONS.htmlFile}
+        </div>
+    ) : (
+        <img
+            src={bookmark.imageUrl || `https://s.wordpress.com/mshots/v1/${encodeURIComponent(bookmark.url)}?w=400&h=200`}
+            alt={bookmark.title}
+            className="w-full h-32 object-cover"
+          />
+    );
     return (
       <div className={`group relative flex flex-col bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg overflow-hidden shadow-sm hover:shadow-lg hover:border-[var(--accent-primary)] transition-all duration-300 transform hover:-translate-y-1 ${selectionClasses} ${selectionWrapperClasses}`}>
-        {onToggleSelect && !isPrivateCollectionItem && (
+        {onToggleSelect && (
             <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" style={isSelected ? {opacity: 1} : {}}>
               <input 
                   type="checkbox" 
@@ -149,22 +181,18 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
             </div>
         )}
         <a href={bookmark.url} target="_blank" rel="noopener noreferrer" className="block" onClick={handleLinkClick}>
-          <img
-            src={imageSrc}
-            alt={bookmark.title}
-            className="w-full h-32 object-cover"
-          />
+          {imageContent}
         </a>
         <div className="p-4 flex flex-col flex-grow">
           <div className="flex items-start mb-2">
-            <img src={faviconUrl} alt="favicon" className="w-5 h-5 mr-2 mt-0.5 rounded-sm" />
+            <FaviconDisplay />
             <a href={bookmark.url} target="_blank" rel="noopener noreferrer" className="flex-1" onClick={handleLinkClick}>
               <h3 className="font-semibold text-[var(--text-primary)] leading-tight truncate hover:text-[var(--accent-primary)] transition-colors">{bookmark.title}</h3>
             </a>
           </div>
           <p className="text-sm text-[var(--text-secondary)] mb-3 flex-grow">{bookmark.description}</p>
           <div className="text-xs text-[var(--text-tertiary)] mb-3">
-              {category?.name} / {folder?.name}
+              {category?.name}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {labels.map(label => (
@@ -181,7 +209,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
 
   return (
     <div className={`group flex items-center p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] hover:border-[var(--accent-primary)]/50 transition-all duration-200 ${selectionClasses} ${selectionWrapperClasses}`}>
-      {onToggleSelect && !isPrivateCollectionItem && (
+      {onToggleSelect && (
           <div className="mr-3 flex-shrink-0">
             <input 
                 type="checkbox" 
@@ -192,12 +220,17 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
             />
           </div>
       )}
-      <img src={faviconUrl} alt="favicon" className="w-6 h-6 mr-4 rounded-sm flex-shrink-0" />
+      <FaviconDisplay />
       <div className="flex-1 truncate">
         <a href={bookmark.url} target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>
           <h3 className="font-medium text-[var(--text-primary)] truncate hover:text-[var(--accent-primary)] transition-colors">{bookmark.title}</h3>
           <p className="text-sm text-[var(--text-tertiary)] truncate">{bookmark.url}</p>
         </a>
+        {category?.name && (
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                {category.name}
+            </p>
+        )}
       </div>
        <div className="flex flex-wrap gap-1.5 mx-4">
             {labels.map(label => (

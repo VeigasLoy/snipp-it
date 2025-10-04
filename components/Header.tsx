@@ -11,6 +11,8 @@ interface HeaderProps {
   onLogout: () => void;
   onAddBookmark: () => void;
   onToggleSidebar: () => void;
+  onSelectMainMenuItem: (item: 'My bookmarks' | 'Collaboration') => void;
+  activeMainMenuItem: 'My bookmarks' | 'Collaboration';
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -21,25 +23,27 @@ const Header: React.FC<HeaderProps> = ({
   onLogout,
   onAddBookmark,
   onToggleSidebar,
+  onSelectMainMenuItem,
+  activeMainMenuItem,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownRef]);
+  }, [userDropdownRef]);
 
   const handleMenuClick = (tab: string) => {
     onOpenSettings(tab);
-    setDropdownOpen(false);
+    setUserDropdownOpen(false);
   };
 
   return (
@@ -47,11 +51,18 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex-1 flex items-center gap-4">
          <button
             onClick={onToggleSidebar}
-            className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] md:hidden mr-2"
+            className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] md:hidden mr-2 bg-[var(--bg-secondary)] rounded-full"
             aria-label="Open sidebar"
         >
             {ICONS.menu}
         </button>
+        {/* Updated logo to use ICONS.logoModern and applied theme-adaptable styling */}
+        <div className="flex items-center gap-2">
+            <div className="w-6 h-6 flex items-center justify-center text-[var(--text-primary)]">
+                {ICONS.logoModern}
+            </div>
+            <span className="text-2xl font-semibold">Snipplt</span>
+        </div>
         <div className="relative w-full max-w-md">
           <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--text-tertiary)]">
               {ICONS.search}
@@ -73,17 +84,17 @@ const Header: React.FC<HeaderProps> = ({
         </button>
       </div>
       <div className="flex items-center space-x-2">
-         <div className="relative" ref={dropdownRef}>
+         <div className="relative" ref={userDropdownRef}>
             <button
-                onClick={() => setDropdownOpen(prev => !prev)}
+                onClick={() => setUserDropdownOpen(prev => !prev)}
                 className="rounded-full hover:opacity-90 transition-opacity"
                 aria-label="Open user menu"
-                aria-expanded={dropdownOpen}
+                aria-expanded={userDropdownOpen}
                 aria-haspopup="true"
             >
                 <Avatar name={user.name} />
             </button>
-            {dropdownOpen && (
+            {userDropdownOpen && (
                <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-primary)] rounded-md shadow-lg py-1 z-20 border border-[var(--border-primary)] ring-1 ring-black ring-opacity-5">
                    <a href="#" onClick={(e) => { e.preventDefault(); handleMenuClick('profile'); }} className="block px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
                        Profile

@@ -26,8 +26,6 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
     if (isSelected && onToggleSelect) {
       e.preventDefault();
       onToggleSelect(bookmark.id);
-    } else {
-      onBookmarkVisit(bookmark.id);
     }
   }
 
@@ -48,7 +46,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
     });
   };
 
-  const isPrivateCollectionItem = bookmark.folderId === PRIVATE_SETTINGS.FOLDER_ID;
+  const isPrivateCollectionItem = bookmark.categoryId === PRIVATE_SETTINGS.CATEGORY_ID;
 
   const locationDisplay = useMemo(() => {
     if (folder) {
@@ -57,7 +55,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
       return `${category?.name ? `${category.name} / ` : ''}${folder.name}`;
     } else if (category) {
       // If the bookmark is directly in a category (no folder)
-      return `${category.name} /`;
+      return `${category.name}`;
     }
     return null; // No location to display
   }, [category, folder]);
@@ -72,9 +70,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
       {isReadingListItem && bookmark.visitCount > 0 && onMarkAsUnread && (
         <button onClick={() => onMarkAsUnread(bookmark.id)} className="p-1.5 bg-[var(--bg-tertiary)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors" title="Mark as unread"><span className="sr-only">Mark as unread</span>{ICONS.markUnread}</button>
       )}
-      {!isPrivateCollectionItem && (
-         <button onClick={() => onToggleFavorite(bookmark.id)} className={`p-1.5 bg-[var(--bg-tertiary)] rounded-md transition-colors ${bookmark.isFavorite ? 'text-yellow-400 hover:text-yellow-500' : 'text-[var(--text-secondary)] hover:text-yellow-400'}`}><span className="sr-only">Favorite</span>{ICONS.star}</button>
-      )}
+      <button onClick={() => onToggleFavorite(bookmark.id)} className={`p-1.5 bg-[var(--bg-tertiary)] rounded-md transition-colors ${bookmark.isFavorite ? 'text-yellow-400 hover:text-yellow-500' : 'text-[var(--text-secondary)] hover:text-yellow-400'}`}><span className="sr-only">Favorite</span>{ICONS.star}</button>
        <button onClick={handleCopyUrl} className="p-1.5 bg-[var(--bg-tertiary)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors" title="Copy URL">
           <span className="sr-only">Copy URL</span>{ICONS.copy}
       </button>
@@ -90,7 +86,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
     const imageSrc = bookmark.imageUrl || `https://s.wordpress.com/mshots/v1/${encodeURIComponent(bookmark.url)}?w=400&h=300`;
     return (
       <div className={`group aspect-[4/3] relative rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${selectionClasses} ${selectionWrapperClasses}`}>
-        {onToggleSelect && !isPrivateCollectionItem && (
+        {onToggleSelect && (
             <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" style={isSelected ? {opacity: 1} : {}}>
               <input 
                   type="checkbox" 
@@ -118,7 +114,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
     const imageSrc = bookmark.imageUrl || `https://s.wordpress.com/mshots/v1/${encodeURIComponent(bookmark.url)}?w=400&h=200`;
     return (
       <div className={`group relative flex flex-col bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg overflow-hidden shadow-sm hover:shadow-lg hover:border-[var(--accent-primary)] transition-all duration-300 transform hover:-translate-y-1 ${selectionClasses} ${selectionWrapperClasses}`}>
-        {onToggleSelect && !isPrivateCollectionItem && (
+        {onToggleSelect && (
             <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" style={isSelected ? {opacity: 1} : {}}>
               <input 
                   type="checkbox" 
@@ -164,7 +160,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
 
   return (
     <div className={`group flex items-center p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] hover:border-[var(--accent-primary)]/50 transition-all duration-200 ${selectionClasses} ${selectionWrapperClasses}`}>
-      {onToggleSelect && !isPrivateCollectionItem && (
+      {onToggleSelect && (
           <div className="mr-3 flex-shrink-0">
             <input 
                 type="checkbox" 
@@ -193,9 +189,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, layout, onInfo, o
             ))}
         </div>
       <div className="flex items-center space-x-2 ml-auto pl-4">
-        {!isPrivateCollectionItem && (
-            <button onClick={() => onToggleFavorite(bookmark.id)} className={`p-1.5 rounded-md transition-colors ${bookmark.isFavorite ? 'text-yellow-400 hover:text-yellow-500' : 'text-[var(--text-tertiary)]/50 group-hover:text-yellow-400/80'}`}><span className="sr-only">Favorite</span>{ICONS.star}</button>
-        )}
+        <button onClick={() => onToggleFavorite(bookmark.id)} className={`p-1.5 rounded-md transition-colors ${bookmark.isFavorite ? 'text-yellow-400 hover:text-yellow-500' : 'text-[var(--text-tertiary)]/50 group-hover:text-yellow-400/80'}`}><span className="sr-only">Favorite</span>{ICONS.star}</button>
         <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {isReadingListItem && bookmark.visitCount > 0 && onMarkAsUnread && (
               <button onClick={() => onMarkAsUnread(bookmark.id)} className="p-1.5 bg-[var(--bg-tertiary)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors" title="Mark as unread"><span className="sr-only">Mark as unread</span>{ICONS.markUnread}</button>

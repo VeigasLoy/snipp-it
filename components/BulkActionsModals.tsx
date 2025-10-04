@@ -1,25 +1,49 @@
 import React, { useState } from 'react';
 import { Category, Folder, Label } from '../types';
-import { ICONS } from '../constants';
+import { ICONS, PRIVATE_SETTINGS } from '../constants';
 
 // --- Bulk Move Modal ---
 interface BulkMoveModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onMove: (folderId: string) => void;
+  onMove: (categoryId: string, folderId: string | null) => void; // Updated to pass both categoryId and folderId
   categories: Category[];
   folders: Folder[];
 }
 
 export const BulkMoveModal: React.FC<BulkMoveModalProps> = ({ isOpen, onClose, onMove, categories, folders }) => {
-  const [selectedFolderId, setSelectedFolderId] = useState(folders[0]?.id || '');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedFolderId) {
-      onMove(selectedFolderId);
+    // Ensure that for a private category, folderId is explicitly null
+    const finalFolderId = selectedCategoryId === PRIVATE_SETTINGS.CATEGORY_ID ? null : selectedFolderId;
+    if (selectedCategoryId) {
+      onMove(selectedCategoryId, finalFolderId);
+    }
+  };
+
+  const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === '') {
+      setSelectedCategoryId(null);
+      setSelectedFolderId(null);
+      return;
+    }
+
+    const [type, id] = value.split(':');
+    if (type === 'category') {
+      setSelectedCategoryId(id);
+      setSelectedFolderId(null); // When selecting a category, clear any selected folder
+    } else if (type === 'folder') {
+      const folder = folders.find(f => f.id === id);
+      if (folder) {
+        setSelectedCategoryId(folder.categoryId); // Set parent category for the selected folder
+        setSelectedFolderId(id);
+      }
     }
   };
 
@@ -28,17 +52,19 @@ export const BulkMoveModal: React.FC<BulkMoveModalProps> = ({ isOpen, onClose, o
       <div className="relative bg-[var(--bg-primary)] w-full max-w-sm rounded-xl shadow-2xl p-8 m-4" onClick={e => e.stopPropagation()}>
         <h2 className="text-xl font-bold mb-4">Move Bookmarks</h2>
         <form onSubmit={handleSubmit}>
-          <label htmlFor="folderId" className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Select a destination folder:</label>
+          <label htmlFor="moveDestination" className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Select a destination:</label>
           <select 
-            id="folderId" 
-            value={selectedFolderId} 
-            onChange={e => setSelectedFolderId(e.target.value)}
+            id="moveDestination" 
+            value={selectedFolderId ? `folder:${selectedFolderId}` : (selectedCategoryId ? `category:${selectedCategoryId}` : '')} // Reflect current selection
+            onChange={handleLocationChange}
             className="w-full px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
           >
+            <option value="">Select Category or Folder</option>
             {categories.map(cat => (
               <optgroup key={cat.id} label={cat.name}>
+                <option value={`category:${cat.id}`}>{cat.name} (Direct)</option>
                 {folders.filter(f => f.categoryId === cat.id).map(folder => (
-                  <option key={folder.id} value={folder.id}>{folder.name}</option>
+                  <option key={folder.id} value={`folder:${folder.id}`}>{folder.name}</option>
                 ))}
               </optgroup>
             ))}
@@ -114,7 +140,7 @@ export const BulkAddLabelsModal: React.FC<BulkAddLabelsModalProps> = ({ isOpen, 
                 onChange={(e) => setNewLabelName(e.target.value)}
                 onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); handleAddNewLabel(); }}}
                 placeholder="Add new label..."
-                className="flex-grow px-3 py-1 text-sm bg-white dark:bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
+                className="flex-grow px-3 py-1 text-sm bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
               />
               <button type="button" onClick={handleAddNewLabel} className="px-3 py-1 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--border-primary)] transition-colors">Add</button>
             </div>

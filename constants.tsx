@@ -4,10 +4,10 @@ export const INITIAL_CATEGORIES: Category[] = [
     { id: 'personal', name: 'Personal' },
     { id: 'reading', name: 'Reading' },
     { id: 'misc', name: 'Miscellaneous' },
+    { id: 'private-collections', name: 'Private Collections' },
 ];
 
 export const INITIAL_FOLDERS: Folder[] = [
-    { id: 'private-collections-folder', name: 'Private Collections', categoryId: 'personal', isPinned: false, isPrivate: true },
 ];
 
 export const INITIAL_LABELS: Label[] = [
@@ -27,8 +27,8 @@ export const INITIAL_USER: User = {
 }
 
 export const PRIVATE_SETTINGS = {
-    CATEGORY_ID: 'personal',
-    FOLDER_ID: 'private-collections-folder',
+    CATEGORY_ID: 'private-collections',
+    FOLDER_ID: '',
     FOLDER_NAME: 'Private Collections'
 };
 
@@ -66,4 +66,7 @@ export const ICONS = {
     copy: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" /><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h6a2 2 0 00-2-2H5z" /></svg>,
     spinner: <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.000 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>,
     warning: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.22 3.006-1.742 3.006H4.42c-1.522 0-2.492-1.672-1.742-3.006l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-3a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" /></svg>,
+    upload: <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>,
+    menu: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>,
+    htmlFile: <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-full h-full"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM9.41 16.17L7.83 14.59 9.41 13l-1.58-1.59L6.25 13l1.58 1.59L6.25 16.17 7.83 17.75 9.41 16.17zm6.18-1.58L14.59 13l1.58-1.59-1.58-1.59L13 13l-1.59 1.59L13 16.17l1.59-1.58z"/></svg>,
 }

@@ -183,7 +183,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onClose, initialTab, user, 
                                 </div>
                                 <div>
                                     <label htmlFor="userName" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Name</label>
-                                    <input type="text" id="userName" value={userName} onChange={e => setUserName(e.target.value)} className="w-full max-w-sm px-3 py-2 bg-white dark:bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"/>
+                                    <input type="text" id="userName" value={userName} onChange={e => setUserName(e.target.value)} className="w-full max-w-sm px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"/>
                                 </div>
                                  <p className="text-sm text-[var(--text-secondary)]">To update your email or password, please visit your Firebase account settings.</p>
 

@@ -4,7 +4,7 @@ export interface Bookmark {
   title: string;
   description: string;
   imageUrl?: string;
-  folderId?: string;
+  folderId: string | null;
   categoryId?: string;
   labels: string[];
   createdAt: string;
@@ -22,7 +22,6 @@ export interface Folder {
   name: string;
   categoryId: string | null;
   isPinned: boolean;
-  isPrivate?: boolean;
 }
 
 export interface Category {

@@ -1,6 +1,6 @@
 import { writeBatch, doc, collection, getDocs } from "firebase/firestore";
 import { db } from '../firebase';
-import { INITIAL_CATEGORIES, INITIAL_FOLDERS, INITIAL_LABELS, INITIAL_BOOKMARKS } from '../constants';
+import { INITIAL_CATEGORIES, INITIAL_LABELS, INITIAL_BOOKMARKS } from '../constants'; // Removed INITIAL_FOLDERS
 
 /**
  * Populates or resets the user's database with the initial set of
@@ -23,12 +23,7 @@ export async function seedInitialData(userId: string): Promise<void> {
         batch.set(categoryRef, { name: category.name });
     });
 
-    // Set Folders
-    INITIAL_FOLDERS.forEach(folder => {
-        const folderRef = doc(db, 'users', userId, 'folders', folder.id);
-        const folderData = { ...folder };
-        batch.set(folderRef, folderData);
-    });
+    // Removed Set Folders as Private Collections is no longer a folder.
 
     // Set Labels
     INITIAL_LABELS.forEach(label => {

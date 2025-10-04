@@ -66,7 +66,7 @@ const PasswordPromptModal: React.FC<PasswordPromptModalProps> = ({ onClose, onSu
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 autoFocus
-                className="w-full px-3 py-2 bg-white dark:bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                className="w-full px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                 placeholder="••••••••"
               />
             </div>

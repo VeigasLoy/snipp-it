@@ -12,8 +12,10 @@ export const useBookmarkFiltering = (
   const filteredBookmarks = useMemo(() => {
     let currentBookmarks = bookmarks;
 
-    // 1. Apply privacy filter first
-    if (activeFilter.id === PRIVATE_SETTINGS.FOLDER_ID) {
+    // 1. Apply privacy filter based on activeFilter
+    // If the active filter is the private category, show only private bookmarks
+    // Otherwise, exclude private bookmarks from the general view
+    if (activeFilter.id === PRIVATE_SETTINGS.CATEGORY_ID && activeFilter.type === 'category') {
       currentBookmarks = bookmarks.filter(b => b.isPrivate);
     } else {
       currentBookmarks = bookmarks.filter(b => !b.isPrivate);
@@ -23,7 +25,7 @@ export const useBookmarkFiltering = (
     const viewFiltered = currentBookmarks.filter(bookmark => {
       switch (activeFilter.type) {
         case 'all':
-          return true; // Already filtered for privacy
+          return true; // Privacy filter already applied
         case 'favorites':
           return bookmark.isFavorite;
         case 'archived':
@@ -38,9 +40,14 @@ export const useBookmarkFiltering = (
           return created < thirtyDaysAgo;
         }
         case 'category': {
-          const folderIdsInCategory = folders.filter(f => f.categoryId === activeFilter.id).map(f => f.id);
-          // Include bookmarks directly in the category or in a folder within the category
-          return bookmark.categoryId === activeFilter.id || (bookmark.folderId && folderIdsInCategory.includes(bookmark.folderId));
+          // If the active category is the private category, we already filtered for it above.
+          // If it's another category, filter by categoryId or folderId within that category.
+          if (activeFilter.id === PRIVATE_SETTINGS.CATEGORY_ID) {
+            return true; // Already handled by the initial privacy filter
+          } else {
+            const folderIdsInCategory = folders.filter(f => f.categoryId === activeFilter.id).map(f => f.id);
+            return bookmark.categoryId === activeFilter.id || (bookmark.folderId && folderIdsInCategory.includes(bookmark.folderId));
+          }
         }
         case 'folder':
           return bookmark.folderId === activeFilter.id;
