@@ -8,26 +8,39 @@ interface FrequentlyVisitedProps {
   onInfo: (bookmark: Bookmark) => void;
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
-  categories: Category[];
-  folders: Folder[];
-  labels: Label[];
-  onShowToast: (message: string) => void;
   onArchive: (id: string) => void;
-  archivingId: string | null;
+  onBulkArchive: (ids: string[]) => void;
+  onBulkDelete: (ids: string[]) => void;
+  onBulkTag: (ids: string[], tags: string[]) => void;
+  onBulkCategorize: (ids: string[], category: string) => void;
+  onBulkMarkAsRead: (ids: string[]) => void;
+  onBulkToggleFavorite: (ids: string[]) => void;
+  // These props are not directly used by FrequentlyVisited but might be passed down to BookmarkItem
+  categories?: Category[]; 
+  folders?: Folder[];
+  labels?: Label[];
+  onShowToast?: (message: string) => void; 
+  archivingId?: string | null;
 }
 
-const FrequentlyVisited: React.FC<FrequentlyVisitedProps> = ({ 
-  bookmarks, 
+const FrequentlyVisited: React.FC<FrequentlyVisitedProps> = ({
+  bookmarks,
   onBookmarkVisit,
   onInfo,
   onDelete,
   onToggleFavorite,
-  categories,
-  folders,
-  labels,
-  onShowToast,
   onArchive,
-  archivingId,
+  onBulkArchive,
+  onBulkDelete,
+  onBulkTag,
+  onBulkCategorize,
+  onBulkMarkAsRead,
+  onBulkToggleFavorite,
+  categories = [],
+  folders = [],
+  labels = [],
+  onShowToast = () => {},
+  archivingId = null,
 }) => {
   if (bookmarks.length === 0) {
     return null;
@@ -39,7 +52,6 @@ const FrequentlyVisited: React.FC<FrequentlyVisitedProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {bookmarks.map(bookmark => {
             const folder = folders.find(f => f.id === bookmark.folderId);
-            // Determine category: first check if bookmark has a direct categoryId, then check if it's in a folder that has a category
             const category = bookmark.categoryId 
                 ? categories.find(c => c.id === bookmark.categoryId)
                 : folder 

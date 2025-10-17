@@ -11,8 +11,8 @@ interface HeaderProps {
   onLogout: () => void;
   onAddBookmark: () => void;
   onToggleSidebar: () => void;
-  onSelectMainMenuItem: (item: 'My bookmarks' | 'Collaboration') => void;
-  activeMainMenuItem: 'My bookmarks' | 'Collaboration';
+  onSelectMainMenuItem: (item: 'My bookmarks' | 'Locker') => void;
+  activeMainMenuItem: 'My bookmarks' | 'Locker';
 }
 
 const Header: React.FC<HeaderProps> = ({

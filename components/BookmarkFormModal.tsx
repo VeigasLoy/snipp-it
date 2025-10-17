@@ -177,6 +177,9 @@ const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
       return 'No Location';
   };
 
+  // Removed PRIVATE_SETTINGS filtering. All categories are now available.
+  const availableCategories = categories;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="relative bg-[var(--bg-primary)] w-full max-w-lg rounded-xl shadow-2xl p-8 m-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -249,7 +252,7 @@ const BookmarkFormModal: React.FC<BookmarkFormModalProps> = ({
                 <label htmlFor="location" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Category/Folder</label>
                 <select name="selectedLocation" value={formData.selectedLocation} onChange={handleLocationChange} className="w-full px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">
                   <option value="">No Category/Folder</option>
-                  {categories.map(cat => (
+                  {availableCategories.map(cat => (
                     <optgroup key={cat.id} label={cat.name}>
                       <option value={cat.id}>{cat.name} (Direct)</option>
                       {folders.filter(f => f.categoryId === cat.id).map(folder => (

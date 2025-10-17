@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Category, Folder, Label } from '../types';
-import { ICONS, PRIVATE_SETTINGS } from '../constants';
+import { ICONS } from '../constants';
 
 // --- Bulk Move Modal ---
 interface BulkMoveModalProps {
@@ -19,10 +19,9 @@ export const BulkMoveModal: React.FC<BulkMoveModalProps> = ({ isOpen, onClose, o
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Ensure that for a private category, folderId is explicitly null
-    const finalFolderId = selectedCategoryId === PRIVATE_SETTINGS.CATEGORY_ID ? null : selectedFolderId;
+    // Removed the special handling for PRIVATE_SETTINGS.CATEGORY_ID
     if (selectedCategoryId) {
-      onMove(selectedCategoryId, finalFolderId);
+      onMove(selectedCategoryId, selectedFolderId);
     }
   };
 

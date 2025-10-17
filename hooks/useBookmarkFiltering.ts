@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { Bookmark, Folder, ActiveFilter, SortByType } from '../types';
-import { PRIVATE_SETTINGS } from '../constants';
 
 export const useBookmarkFiltering = (
   bookmarks: Bookmark[],
@@ -12,20 +11,15 @@ export const useBookmarkFiltering = (
   const filteredBookmarks = useMemo(() => {
     let currentBookmarks = bookmarks;
 
-    // 1. Apply privacy filter based on activeFilter
-    // If the active filter is the private category, show only private bookmarks
-    // Otherwise, exclude private bookmarks from the general view
-    if (activeFilter.id === PRIVATE_SETTINGS.CATEGORY_ID && activeFilter.type === 'category') {
-      currentBookmarks = bookmarks.filter(b => b.isPrivate);
-    } else {
-      currentBookmarks = bookmarks.filter(b => !b.isPrivate);
-    }
+    // Removed the special handling for 'Private Collections'.
+    // Private bookmarks will now be treated like any other bookmark
+    // and will be included in the general view.
 
     // 2. Apply view-specific filters
     const viewFiltered = currentBookmarks.filter(bookmark => {
       switch (activeFilter.type) {
         case 'all':
-          return true; // Privacy filter already applied
+          return true;
         case 'favorites':
           return bookmark.isFavorite;
         case 'archived':
@@ -40,14 +34,9 @@ export const useBookmarkFiltering = (
           return created < thirtyDaysAgo;
         }
         case 'category': {
-          // If the active category is the private category, we already filtered for it above.
-          // If it's another category, filter by categoryId or folderId within that category.
-          if (activeFilter.id === PRIVATE_SETTINGS.CATEGORY_ID) {
-            return true; // Already handled by the initial privacy filter
-          } else {
-            const folderIdsInCategory = folders.filter(f => f.categoryId === activeFilter.id).map(f => f.id);
-            return bookmark.categoryId === activeFilter.id || (bookmark.folderId && folderIdsInCategory.includes(bookmark.folderId));
-          }
+          // Filter by categoryId or folderId within that category.
+          const folderIdsInCategory = folders.filter(f => f.categoryId === activeFilter.id).map(f => f.id);
+          return bookmark.categoryId === activeFilter.id || (bookmark.folderId && folderIdsInCategory.includes(bookmark.folderId));
         }
         case 'folder':
           return bookmark.folderId === activeFilter.id;

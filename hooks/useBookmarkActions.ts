@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Bookmark, Category, Folder, Label, ActiveFilter } from '../types';
-import { PRIVATE_SETTINGS } from '../constants';
 
 interface UseBookmarkActionsProps {
   bookmarks: Bookmark[];
@@ -87,7 +86,7 @@ export const useBookmarkActions = ({
   const handleSaveBookmark = (bookmarkData: Omit<Bookmark, 'id' | 'createdAt' | 'isFavorite' | 'visitCount' | 'lastVisitedAt'>, id?: string) => {
     const dataToSave = {
       ...bookmarkData,
-      isPrivate: bookmarkData.categoryId === PRIVATE_SETTINGS.CATEGORY_ID,
+      isPrivate: false, // Removed PRIVATE_SETTINGS usage, defaulting to false
       folderId: bookmarkData.folderId || null,
       categoryId: bookmarkData.categoryId || null,
     };
@@ -144,8 +143,7 @@ export const useBookmarkActions = ({
   };
 
   const handleBulkMove = (categoryId: string, folderId: string | null) => {
-    const isPrivate = categoryId === PRIVATE_SETTINGS.CATEGORY_ID;
-    bulkUpdateBookmarks(selectedBookmarkIds, { categoryId, folderId: isPrivate ? null : folderId, isPrivate }); 
+    bulkUpdateBookmarks(selectedBookmarkIds, { categoryId, folderId, isPrivate: false }); // Removed PRIVATE_SETTINGS usage, defaulting isPrivate to false
     setBulkMoveModalOpen(false);
     setSelectedBookmarkIds([]);
   };

@@ -70,10 +70,12 @@ export function useFirestore<T extends { id: string }>(collectionName: string, u
         if (!userId) return;
         const collectionRef = collection(db, 'users', userId, collectionName);
         try {
+            console.log(`Attempting to delete document with ID: ${id} from collection: ${collectionName}`);
             const batch = writeBatch(db);
             const docRef = doc(collectionRef, id);
             batch.delete(docRef);
             await batch.commit();
+            console.log(`Successfully deleted document with ID: ${id}`);
         } catch (e) {
             console.error("Error deleting document: ", e);
             setError(e as Error);
@@ -84,12 +86,14 @@ export function useFirestore<T extends { id: string }>(collectionName: string, u
         if (!userId || ids.length === 0) return;
         const collectionRef = collection(db, 'users', userId, collectionName);
         try {
+            console.log(`Attempting to bulk update documents with IDs: ${ids.join(', ')} in collection: ${collectionName}`);
             const batch = writeBatch(db);
             ids.forEach(id => {
                 const docRef = doc(collectionRef, id);
                 batch.update(docRef, updates as any);
             });
             await batch.commit();
+            console.log(`Successfully bulk updated documents with IDs: ${ids.join(', ')}`);
         } catch (e) {
             console.error("Error bulk updating documents: ", e);
             setError(e as Error);
@@ -116,12 +120,14 @@ export function useFirestore<T extends { id: string }>(collectionName: string, u
         if (!userId || ids.length === 0) return;
         const collectionRef = collection(db, 'users', userId, collectionName);
         try {
+            console.log(`Attempting to bulk delete documents with IDs: ${ids.join(', ')} from collection: ${collectionName}`);
             const batch = writeBatch(db);
             ids.forEach(id => {
                 const docRef = doc(collectionRef, id);
                 batch.delete(docRef);
             });
             await batch.commit();
+            console.log(`Successfully bulk deleted documents with IDs: ${ids.join(', ')}`);
         } catch (e) {
             console.error("Error bulk deleting documents: ", e);
             setError(e as Error);

@@ -56,14 +56,15 @@ export const useCategoryFolderManagement = ({
     addFolder({ name: name.trim(), categoryId, isPinned: false });
   };
 
-  const handleUpdateFolder = (id: string, name: string) => {
-    if (!name.trim()) return;
-    updateFolder(id, { name: name.trim() });
+  const handleUpdateFolder = (id: string, data: Partial<Folder>) => {
+    if (data.name !== undefined && !data.name.trim()) return;
+    updateFolder(id, data);
   };
   
   const handleDeleteFolder = (id: string, name: string) => {
-    if (folders.length <= 1) {
-        alert(`Cannot delete "${name}" as it is your only folder.`);
+    const hasBookmarksInFolder = bookmarks.some(b => b.folderId === id);
+    if (hasBookmarksInFolder) {
+        alert(`Cannot delete "${name}". Please delete or move all bookmarks from this folder first.`);
         return;
     }
     setItemToDelete({ type: 'folder', id, name });

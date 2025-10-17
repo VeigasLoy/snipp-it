@@ -1,29 +1,27 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Category, Folder, Label, ActiveFilter } from '../types';
-import { ICONS, PRIVATE_SETTINGS } from '../constants';
+import { ICONS, INITIAL_CATEGORIES } from '../constants';
 
 interface SidebarProps {
+  selectedOption: string;
+  onSelectOption: (option: string) => void;
   categories: Category[];
-  folders: Folder[];
+  folders: Folder[]; // Added folders prop
   labels: Label[];
-  activeFilter: ActiveFilter;
-  setActiveFilter: (filter: ActiveFilter) => void;
-  onAddCategory: (name: string) => void;
-  onUpdateCategory: (id: string, name: string) => void;
-  onDeleteCategory: (id: string, name: string) => void;
-  onAddFolder: (name: string, categoryId: string) => void;
-  onUpdateFolder: (id: string, name: string) => void;
-  onDeleteFolder: (id: string, name: string) => void;
-  onDeleteLabel: (id: string, name: string) => void;
-  onPrivateFolderClick: () => void;
-  onShareFolder: (id: string, name: string) => void;
-  onTogglePinFolder: (id: string, name: string, isPinned: boolean) => void;
-  onCloseSidebar: () => void;
-  onSelectMainMenuItem: (item: 'My bookmarks' | 'Collaboration' | 'Private collections') => void;
-  activeMainMenuItem: 'My bookmarks' | 'Collaboration' | 'Private collections';
+  activeFilter: ActiveFilter; // Added activeFilter prop
+  setActiveFilter: (filter: ActiveFilter) => void; // Added setActiveFilter prop
+  onAddCategory: (name: string) => void; // Renamed to match Dashboard.f
+  onUpdateCategory: (id: string, name: string) => void; // Renamed to match Dashboard.tsx
+  onDeleteCategory: (id: string, name: string) => void; // Renamed to match Dashboard.tsx
+  onAddFolder: (name: string, categoryId: string | null) => void; // Added onAddFolder prop
+  onUpdateFolder: (id: string, updates: Partial<Folder>) => void; // Added onUpdateFolder prop
+  onDeleteFolder: (id: string, name: string) => void; // Added onDeleteFolder prop
+  onDeleteLabel: (id: string, name: string) => void; // Renamed to match Dashboard.tsx
+  onPrivateFolderClick: () => void; // Added onPrivateFolderClick prop
+  onShareFolder: (folderId: string, folderName: string) => void; // Renamed to match Dashboard.tsx
+  onTogglePinFolder: (id: string, name: string, isPinned: boolean) => void; // Added onTogglePinFolder prop
 }
 
-// FIX: Refactored EditableItemWrapper to be a React.FC to resolve a TypeScript type inference issue with the 'children' prop.
 const EditableItemWrapper: React.FC<{children: React.ReactNode, onEdit?: () => void, onDelete?: () => void, onShare?: () => void, onPin?: () => void, isPinned?: boolean}> = ({ children, onEdit, onDelete, onShare, onPin, isPinned }) => (
   <div className="group flex items-center w-full">
       {children}
@@ -31,7 +29,8 @@ const EditableItemWrapper: React.FC<{children: React.ReactNode, onEdit?: () => v
           {onShare && <button onClick={onShare} className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"><span className="sr-only">Share</span>{React.cloneElement(ICONS.share, {className:"w-3.5 h-3.5"})}</button>}
           {onPin && (
             <button onClick={onPin} className={`p-1 ${isPinned ? 'text-[var(--accent-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}>
-              <span className="sr-only">{isPinned ? 'Unpin' : 'Pin'}</span>{React.cloneElement(ICONS.pin, {className:"w-3.5 h-3.5"})}</button>
+              <span className="sr-only">{isPinned ? 'Unpin' : 'Pin'}</span>{React.cloneElement(ICONS.pin, {className:"w-3.5 h-3.5"})}
+            </button>
           )}
           {onEdit && <button onClick={onEdit} className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"><span className="sr-only">Edit</span>{React.cloneElement(ICONS.edit, {className:"w-3.5 h-3.5"})}</button>}
           {onDelete && <button onClick={onDelete} className="p-1 text-[var(--text-tertiary)] hover:text-red-500"><span className="sr-only">Delete</span>{React.cloneElement(ICONS.delete, {className:"w-3.5 h-3.5"})}</button>}
@@ -57,16 +56,23 @@ const SidebarItem: React.FC<{
 );
 
 const Sidebar: React.FC<SidebarProps> = ({
-    categories, folders, labels, activeFilter, setActiveFilter,
-    onAddCategory, onUpdateCategory, onDeleteCategory,
-    onAddFolder, onUpdateFolder, onDeleteFolder,
+    selectedOption,
+    onSelectOption,
+    categories,
+    folders, // Destructure folders prop
+    labels,
+    activeFilter, // Destructure activeFilter prop
+    setActiveFilter, // Destructure setActiveFilter prop
+    onAddCategory,
+    onUpdateCategory,
+    onDeleteCategory,
+    onAddFolder, // Destructure onAddFolder prop
+    onUpdateFolder, // Destructure onUpdateFolder prop
+    onDeleteFolder, // Destructure onDeleteFolder prop
     onDeleteLabel,
-    onPrivateFolderClick,
+    onPrivateFolderClick, // Destructure onPrivateFolderClick prop
     onShareFolder,
-    onTogglePinFolder,
-    onCloseSidebar,
-    onSelectMainMenuItem,
-    activeMainMenuItem,
+    onTogglePinFolder, // Destructure onTogglePinFolder prop
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<string[]>(categories.map(c => c.id));
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -74,12 +80,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [addingFolderTo, setAddingFolderTo] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [mainDropdownOpen, setMainDropdownOpen] = useState(false);
+  // Removed internal activeFilter state: const [activeFilter, setActiveFilter] = useState<ActiveFilter>({ type: 'all', id: 'all', name: 'All Bookmarks' });
 
   const [editingItem, setEditingItem] = useState<{type: 'category' | 'folder', id: string, name: string} | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const mainDropdownRef = useRef<HTMLDivElement>(null);
   const hasSelectedOnFocus = useRef(false);
 
+  const nonEditableCategoryIds = useMemo(() => INITIAL_CATEGORIES.map(cat => cat.id), []);
+
+  // Removed internal folders state: const [folders, setFolders] = useState<Folder[]>([]); 
+  
   useEffect(() => {
     if (editingItem && editInputRef.current && !hasSelectedOnFocus.current) {
       editInputRef.current.focus();
@@ -115,7 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       }
 
       if (newIds.length === 0) {
-          setActiveFilter({ type: 'all', id: 'all', name: 'My bookmarks' });
+          setActiveFilter({ type: 'all', id: 'all', name: 'All Bookmarks' });
       } else {
           const newNames = labels.filter(l => newIds.includes(l.id)).map(l => `#${l.name}`).join(', ');
           setActiveFilter({ type: 'label', id: newIds, name: newNames });
@@ -145,6 +156,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const handleStartEdit = (type: 'category' | 'folder', item: Category | Folder) => {
+    if (type === 'category' && nonEditableCategoryIds.includes(item.id)) {
+      return;
+    }
     setEditingItem({ type, id: item.id, name: item.name });
   };
 
@@ -157,10 +171,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       handleCancelEdit();
       return;
     }
+    if (editingItem.type === 'category' && nonEditableCategoryIds.includes(editingItem.id)) {
+      handleCancelEdit();
+      return;
+    }
     if (editingItem.type === 'category') {
       onUpdateCategory(editingItem.id, editingItem.name);
     } else {
-      onUpdateFolder(editingItem.id, editingItem.name);
+      onUpdateFolder(editingItem.id, { name: editingItem.name });
     }
     setEditingItem(null);
   };
@@ -170,8 +188,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (e.key === 'Escape') handleCancelEdit();
   };
 
-  const handleMainDropdownClick = (option: 'My bookmarks' | 'Collaboration' | 'Private collections') => {
-    onSelectMainMenuItem(option);
+  const handleMainDropdownClick = (option: 'My bookmarks' | 'Locker') => {
+    onSelectOption(option);
     setMainDropdownOpen(false);
   };
 
@@ -184,8 +202,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex-grow overflow-y-auto -mr-2 pr-2">
         <div className="flex items-center mb-6 flex-shrink-0">
           <div className="flex items-center gap-2 relative" ref={mainDropdownRef}>
-              {/* Updated to display activeMainMenuItem */}
-              <span className="text-xl font-semibold">{activeMainMenuItem}</span>
+              <span className="text-xl font-semibold">{selectedOption}</span>
               <button
                   onClick={() => setMainDropdownOpen(prev => !prev)}
                   className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
@@ -195,14 +212,11 @@ const Sidebar: React.FC<SidebarProps> = ({
               </button>
               {mainDropdownOpen && (
                   <div className="absolute left-0 top-full mt-2 w-48 bg-[var(--bg-primary)] rounded-md shadow-lg py-1 z-20 border border-[var(--border-primary)] ring-1 ring-black ring-opacity-5">
-                      <a href="#" onClick={(e) => { e.preventDefault(); handleMainDropdownClick('My bookmarks'); }} className={`block px-4 py-2 text-sm ${activeMainMenuItem === 'My bookmarks' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'} transition-colors`}>
+                      <a href="#" onClick={(e) => { e.preventDefault(); handleMainDropdownClick('My bookmarks'); }} className={`block px-4 py-2 text-sm ${selectedOption === 'My bookmarks' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'} transition-colors`}>
                           My bookmarks
                       </a>
-                      <a href="#" onClick={(e) => { e.preventDefault(); handleMainDropdownClick('Collaboration'); }} className={`block px-4 py-2 text-sm ${activeMainMenuItem === 'Collaboration' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'} transition-colors`}>
-                          Collaboration
-                      </a>
-                      <a href="#" onClick={(e) => { e.preventDefault(); handleMainDropdownClick('Private collections'); }} className={`block px-4 py-2 text-sm ${activeMainMenuItem === 'Private collections' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'} transition-colors`}>
-                          Private collections
+                      <a href="#" onClick={(e) => { e.preventDefault(); handleMainDropdownClick('Locker'); }} className={`block px-4 py-2 text-sm ${selectedOption === 'Locker' ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'} transition-colors`}>
+                          Locker
                       </a>
                   </div>
               )}
@@ -211,8 +225,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         <nav className="flex-1 space-y-4">
           <div className="space-y-1">
-            <SidebarItem onClick={() => setActiveFilter({ type: 'all', id: 'all', name: 'My bookmarks' })} isActive={activeFilter.type === 'all'}>
-              <span className="mr-3">{ICONS.grid}</span> My bookmarks
+            <SidebarItem onClick={() => setActiveFilter({ type: 'all', id: 'all', name: 'All Bookmarks' })} isActive={activeFilter.type === 'all'}>
+              <span className="mr-3">{ICONS.grid}</span> All Bookmarks
             </SidebarItem>
             <SidebarItem onClick={() => setActiveFilter({ type: 'favorites', id: 'favorites', name: 'Favorites' })} isActive={activeFilter.type === 'favorites'}>
               <span className="mr-3 text-yellow-500">{ICONS.star}</span> Favorites
@@ -223,6 +237,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <SidebarItem onClick={() => setActiveFilter({ type: 'abandoned', id: 'abandoned', name: 'Abandoned' })} isActive={activeFilter.type === 'abandoned'}>
               <span className="mr-3">{ICONS.brokenLink}</span> Abandoned
             </SidebarItem>
+            
           </div>
 
           {/* Pinned Folders Section */}
@@ -267,30 +282,30 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </form>
               )}
               <div className="space-y-1">
-                  {categories.map(cat => (
+                  {categories.map(cat => {
+                      const isNonEditable = nonEditableCategoryIds.includes(cat.id);
+                      return (
                       <div key={cat.id}>
-                          {cat.id === PRIVATE_SETTINGS.CATEGORY_ID ? (
-                              <SidebarItem onClick={onPrivateFolderClick} isActive={activeFilter.type === 'category' && activeFilter.id === cat.id} icon={ICONS.lockClosed}>
-                                {cat.name}
-                              </SidebarItem>
-                          ) : (
-                            <EditableItemWrapper onEdit={() => handleStartEdit('category', cat)} onDelete={() => onDeleteCategory(cat.id, cat.name)}>
+                              <EditableItemWrapper 
+                                  onEdit={isNonEditable ? undefined : () => handleStartEdit('category', cat)}
+                                  onDelete={isNonEditable ? undefined : () => onDeleteCategory(cat.id, cat.name)}
+                              >
                               <>
-                                <button onClick={() => handleToggleCategory(cat.id)} className="flex-shrink-0 p-1 text-[var(--text-tertiary)]">
-                                    {expandedCategories.includes(cat.id) ? React.cloneElement(ICONS.chevronDown, {className:"w-4 h-4"}) : React.cloneElement(ICONS.chevronRight, {className:"w-4 h-4"})}</button>
-                                {editingItem?.type === 'category' && editingItem.id === cat.id ? (
+                                  <button onClick={() => handleToggleCategory(cat.id)} className="flex-shrink-0 p-1 text-[var(--text-tertiary)]">
+                                      {expandedCategories.includes(cat.id) ? React.cloneElement(ICONS.chevronDown, {className:"w-4 h-4"}) : React.cloneElement(ICONS.chevronRight, {className:"w-4 h-4"})}
+                                  </button>
+                                  {editingItem?.type === 'category' && editingItem.id === cat.id ? (
                                   <input type="text" ref={editInputRef} value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} onBlur={handleSaveEdit} onKeyDown={handleEditKeyDown} className="w-full text-sm mr-2 px-2 py-1.5 bg-transparent dark:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"/>
-                                ) : (
+                                  ) : (
                                   <SidebarItem onClick={() => { setActiveFilter({type: 'category', id: cat.id, name: cat.name}); handleToggleCategory(cat.id); }} isActive={activeFilter.type==='category' && activeFilter.id === cat.id} className="flex-1" icon={ICONS.folder}>
                                       {cat.name}
                                   </SidebarItem>
-                                )}
-                                {cat.id !== MISC_CATEGORY_ID && (
+                                  )}
+                                  {cat.id !== MISC_CATEGORY_ID && (
                                   <button onClick={() => { setAddingFolderTo(cat.id); handleToggleCategory(cat.id); }} className="p-1 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100"><span className="sr-only">Add folder to {cat.name}</span>{ICONS.add}</button>
-                                )}
+                                  )}
                               </>
-                            </EditableItemWrapper>
-                          )}
+                              </EditableItemWrapper>
                           
                           {expandedCategories.includes(cat.id) && (
                               <div className="pl-6 space-y-1 mt-1">
@@ -301,36 +316,30 @@ const Sidebar: React.FC<SidebarProps> = ({
                                   )}
                                   {folders.filter(f => f.categoryId === cat.id).map(folder => (
                                       <div key={folder.id}>
-                                          {folder.categoryId === PRIVATE_SETTINGS.CATEGORY_ID ? (
-                                              <SidebarItem onClick={onPrivateFolderClick} isActive={activeFilter.type === 'folder' && activeFilter.id === folder.id} icon={ICONS.lockClosed}>
-                                                  {folder.name}
-                                              </SidebarItem>
-                                          ) : (
                                           <EditableItemWrapper
-                                            onEdit={() => handleStartEdit('folder', folder)}
-                                            onDelete={() => onDeleteFolder(folder.id, folder.name)}
-                                            onShare={() => onShareFolder(folder.id, folder.name)}
-                                            onPin={() => onTogglePinFolder(folder.id, folder.name, folder.isPinned)}
-                                            isPinned={folder.isPinned}
+                                              onEdit={() => handleStartEdit('folder', folder)}
+                                              onDelete={() => onDeleteFolder(folder.id, folder.name)}
+                                              onShare={() => onShareFolder(folder.id, folder.name)}
+                                              onPin={() => onTogglePinFolder(folder.id, folder.name, folder.isPinned)}
+                                              isPinned={folder.isPinned}
                                           >
                                               <>
-                                                {editingItem?.type === 'folder' && editingItem.id === folder.id ? (
-                                                    <input type="text" ref={editInputRef} value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} onBlur={handleSaveEdit} onKeyDown={handleEditKeyDown} className="w-full text-sm mr-2 px-2 py-1.5 bg-transparent dark:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"/>
-                                                ) : (
-                                                    <SidebarItem onClick={() => setActiveFilter({type: 'folder', id: folder.id, name: folder.name})} isActive={activeFilter.type === 'folder' && activeFilter.id === folder.id} className="flex-1">
-                                                        {folder.name}
-                                                    </SidebarItem>
-                                                )}
+                                                  {editingItem?.type === 'folder' && editingItem.id === folder.id ? (
+                                                      <input type="text" ref={editInputRef} value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} onBlur={handleSaveEdit} onKeyDown={handleEditKeyDown} className="w-full text-sm mr-2 px-2 py-1.5 bg-transparent dark:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"/>
+                                                  ) : (
+                                                      <SidebarItem onClick={() => setActiveFilter({type: 'folder', id: folder.id, name: folder.name})} isActive={activeFilter.type === 'folder' && activeFilter.id === folder.id} className="flex-1">
+                                                          {folder.name}
+                                                      </SidebarItem>
+                                                  )}
                                               </>
                                           </EditableItemWrapper>
-                                          )}
                                       </div>
-                                    )
-                                  )}
+                                    ))}
+                                  
                               </div>
                           )}
                       </div>
-                  ))}
+                    )})}
               </div>
           </div>
 
@@ -341,7 +350,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 const isActive = activeFilter.type === 'label' && Array.isArray(activeFilter.id) && activeFilter.id.includes(label.id);
                 return (
                   <div key={label.id} className="group relative">
-                    <button onClick={() => handleLabelClick(label.id)}
+                    <button type="button" key={label.id} onClick={() => handleLabelClick(label.id)}
                       className={`pl-2.5 pr-2.5 py-1 text-xs rounded-full border transition-colors ${
                           isActive ? 'bg-[var(--accent-primary)] text-white border-[var(--accent-primary)]' : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-primary)] hover:border-[var(--text-primary)]'
                       }`}

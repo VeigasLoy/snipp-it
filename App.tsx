@@ -177,7 +177,6 @@ const App: React.FC = () => {
                         font={font}
                         setFont={setFont}
                         onLogout={() => auth.signOut()}
-                        onPrivateFolderClick={() => {}}
                         updateUserName={updateUserName}
                         droppedUrl={droppedUrl}
                         setDroppedUrl={setDroppedUrl}

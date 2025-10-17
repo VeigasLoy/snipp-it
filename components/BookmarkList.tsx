@@ -1,10 +1,13 @@
 import React from 'react';
-import { Bookmark, Layout, Category, Label, Folder } from '../types';
+import { Bookmark, Layout, Category, Label, Folder, ActiveFilter, SortByType } from '../types';
 import BookmarkItem from './BookmarkItem';
 
 interface BookmarkListProps {
   bookmarks: Bookmark[];
-  layout: Layout;
+  isLoading: boolean;
+  activeFilter: ActiveFilter;
+  sortBy: SortByType;
+  setSortBy: (sortBy: SortByType) => void;
   onInfo: (bookmark: Bookmark) => void;
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
@@ -15,13 +18,57 @@ interface BookmarkListProps {
   isReadingListView?: boolean;
   onMarkAsUnread?: (id: string) => void;
   selectedBookmarkIds: string[];
+  setSelectedBookmarkIds: (ids: string[]) => void;
   onToggleSelect: (id: string) => void;
   onShowToast: (message: string) => void;
   onArchive: (id: string) => void;
   archivingId: string | null;
+  onBulkArchive: (ids: string[]) => void;
+  onBulkDelete: (ids: string[]) => void;
+  onBulkTag: (ids: string[], tags: string[]) => void;
+  onBulkCategorize: (ids: string[], category: string) => void;
+  onBulkMarkAsRead: (ids: string[]) => void;
+  onBulkToggleFavorite: (ids: string[]) => void;
+  layout: Layout; 
 }
 
-const BookmarkList: React.FC<BookmarkListProps> = ({ bookmarks, layout, onInfo, onDelete, onToggleFavorite, onBookmarkVisit, categories, folders, labels, isReadingListView, onMarkAsUnread, selectedBookmarkIds, onToggleSelect, onShowToast, onArchive, archivingId }) => {
+const BookmarkList: React.FC<BookmarkListProps> = ({
+  bookmarks,
+  isLoading,
+  activeFilter,
+  sortBy,
+  setSortBy,
+  onInfo,
+  onDelete,
+  onToggleFavorite,
+  onBookmarkVisit,
+  categories,
+  folders,
+  labels,
+  isReadingListView,
+  onMarkAsUnread,
+  selectedBookmarkIds,
+  setSelectedBookmarkIds,
+  onToggleSelect,
+  onShowToast,
+  onArchive,
+  archivingId,
+  onBulkArchive,
+  onBulkDelete,
+  onBulkTag,
+  onBulkCategorize,
+  onBulkMarkAsRead,
+  onBulkToggleFavorite,
+  layout,
+}) => {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <p>Loading bookmarks...</p>
+      </div>
+    );
+  }
+
   if (bookmarks.length === 0) {
     return (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-280px)] text-center text-[var(--text-tertiary)]">
